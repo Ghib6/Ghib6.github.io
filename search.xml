@@ -79,31 +79,6 @@
     
     
     <entry>
-      <title>第二篇文章</title>
-      <link href="/2022/11/28/%E7%AC%AC%E4%BA%8C%E7%AF%87%E6%96%87%E7%AB%A0/"/>
-      <url>/2022/11/28/%E7%AC%AC%E4%BA%8C%E7%AF%87%E6%96%87%E7%AB%A0/</url>
-      
-        <content type="html"><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><p>##这是我的第二篇文章<br>##该hexo博客由markdown标记语言编写，并部署在vercel平台加速的博客<br>##该文章面向与网页设计ppt讲解附带简单展示</p><h2 id="下面是网页基础课作业示列"><a href="#下面是网页基础课作业示列" class="headerlink" title="下面是网页基础课作业示列"></a>下面是网页基础课作业示列</h2><h1 id="成都双遗马拉松"><a href="#成都双遗马拉松" class="headerlink" title="成都双遗马拉松"></a>成都双遗马拉松</h1><p>欢迎来到成都双遗马拉松的官方网页！本次比赛将于今年10月1日在成都市双流区举行，届时将有来自全国各地的选手共同参与这一盛大的赛事。</p><h2 id="赛事信息"><a href="#赛事信息" class="headerlink" title="赛事信息"></a>赛事信息</h2><ul><li>日期：2023年10月1日（周日）</li><li>地点：成都市双流区</li><li>起点：双流区政府广场</li><li>终点：成都双流国际机场</li><li>赛道长度：42.195公里</li><li>报名时间：2023年4月1日-2023年8月31日</li><li>报名费用：200元/人</li></ul><h2 id="赛道介绍"><a href="#赛道介绍" class="headerlink" title="赛道介绍"></a>赛道介绍</h2><p>成都双遗马拉松的赛道起点设在双流区政府广场，沿着广场北侧的道路向东南方向前行，经过双流区的多个景点和重要建筑，包括天府双流国际机场、中国西南航空博物馆、双流古镇、东升文化公园等。比赛的终点是成都双流国际机场，选手们可以在这里领取奖牌和完赛证书，还可以参加后续的颁奖仪式和庆祝活动。</p><h2 id="报名方式"><a href="#报名方式" class="headerlink" title="报名方式"></a>报名方式</h2><p>报名方式非常简单，只需要登录成都双遗马拉松官方网站，在报名页面填写个人信息并缴纳报名费用即可。请注意，报名截止时间为2023年8月31日，逾期将无法参赛。同时，为了保证比赛的公平性和安全性，组委会将对所有报名选手进行资格审核和健康体检，不符合条件的选手将无法参加比赛。</p><h2 id="赛事奖励"><a href="#赛事奖励" class="headerlink" title="赛事奖励"></a>赛事奖励</h2><p>本次比赛将设立男女子组别，分别设立前三名奖金和奖品，奖励如下：</p><ul><li>冠军：奖金50000元+奖品</li><li>亚军：奖金30000元+奖品</li><li>季军：奖金20000元+奖品</li></ul><p>此外，还将设立成都市民组别和企业团体组别，为获得优异成绩的选手颁发荣誉证书和奖品。</p><h2 id="赛事注意事项"><a href="#赛事注意事项" class="headerlink" title="赛事注意事项"></a>赛事注意事项</h2><ul><li>比赛过程中，参赛选</li></ul>]]></content>
-      
-      
-      <categories>
-          
-          <category> 测试分类2 </category>
-          
-      </categories>
-      
-      
-        <tags>
-            
-            <tag> hexo </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
       <title>网页设计</title>
       <link href="/2022/11/28/%E7%BD%91%E9%A1%B5%E8%AE%BE%E8%AE%A1%E8%BE%85%E5%8A%A9%E6%96%87%E7%AB%A0/"/>
       <url>/2022/11/28/%E7%BD%91%E9%A1%B5%E8%AE%BE%E8%AE%A1%E8%BE%85%E5%8A%A9%E6%96%87%E7%AB%A0/</url>
@@ -121,6 +96,31 @@
         <tags>
             
             <tag> 网页设计 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>第二篇文章</title>
+      <link href="/2022/11/28/%E7%AC%AC%E4%BA%8C%E7%AF%87%E6%96%87%E7%AB%A0/"/>
+      <url>/2022/11/28/%E7%AC%AC%E4%BA%8C%E7%AF%87%E6%96%87%E7%AB%A0/</url>
+      
+        <content type="html"><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="\assets\css\APlayer.min.css"><script src="\assets\js\APlayer.min.js" class="aplayer-secondary-script-marker"></script><p>##这是我的第二篇文章<br>##该hexo博客由markdown标记语言编写，并部署在vercel平台加速的博客<br>##该文章面向与网页设计ppt讲解附带简单展示</p><h2 id="下面是网页基础课作业示列"><a href="#下面是网页基础课作业示列" class="headerlink" title="下面是网页基础课作业示列"></a>下面是网页基础课作业示列</h2><h1 id="成都双遗马拉松"><a href="#成都双遗马拉松" class="headerlink" title="成都双遗马拉松"></a>成都双遗马拉松</h1><p>欢迎来到成都双遗马拉松的官方网页！本次比赛将于今年10月1日在成都市双流区举行，届时将有来自全国各地的选手共同参与这一盛大的赛事。</p><h2 id="赛事信息"><a href="#赛事信息" class="headerlink" title="赛事信息"></a>赛事信息</h2><ul><li>日期：2023年10月1日（周日）</li><li>地点：成都市双流区</li><li>起点：双流区政府广场</li><li>终点：成都双流国际机场</li><li>赛道长度：42.195公里</li><li>报名时间：2023年4月1日-2023年8月31日</li><li>报名费用：200元/人</li></ul><h2 id="赛道介绍"><a href="#赛道介绍" class="headerlink" title="赛道介绍"></a>赛道介绍</h2><p>成都双遗马拉松的赛道起点设在双流区政府广场，沿着广场北侧的道路向东南方向前行，经过双流区的多个景点和重要建筑，包括天府双流国际机场、中国西南航空博物馆、双流古镇、东升文化公园等。比赛的终点是成都双流国际机场，选手们可以在这里领取奖牌和完赛证书，还可以参加后续的颁奖仪式和庆祝活动。</p><h2 id="报名方式"><a href="#报名方式" class="headerlink" title="报名方式"></a>报名方式</h2><p>报名方式非常简单，只需要登录成都双遗马拉松官方网站，在报名页面填写个人信息并缴纳报名费用即可。请注意，报名截止时间为2023年8月31日，逾期将无法参赛。同时，为了保证比赛的公平性和安全性，组委会将对所有报名选手进行资格审核和健康体检，不符合条件的选手将无法参加比赛。</p><h2 id="赛事奖励"><a href="#赛事奖励" class="headerlink" title="赛事奖励"></a>赛事奖励</h2><p>本次比赛将设立男女子组别，分别设立前三名奖金和奖品，奖励如下：</p><ul><li>冠军：奖金50000元+奖品</li><li>亚军：奖金30000元+奖品</li><li>季军：奖金20000元+奖品</li></ul><p>此外，还将设立成都市民组别和企业团体组别，为获得优异成绩的选手颁发荣誉证书和奖品。</p><h2 id="赛事注意事项"><a href="#赛事注意事项" class="headerlink" title="赛事注意事项"></a>赛事注意事项</h2><ul><li>比赛过程中，参赛选</li></ul>]]></content>
+      
+      
+      <categories>
+          
+          <category> 测试分类2 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> hexo </tag>
             
         </tags>
       
