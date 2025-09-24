@@ -258,6 +258,7 @@
 #recent-posts>.recent-post-item {
   background: var(--trans-light);
   backdrop-filter: var(--backdrop-filter);
+  -webkit-backdrop-filter: var(--backdrop-filter);
   border-radius: 25px;
   border: var(--border-style);
 }
@@ -266,6 +267,7 @@
 #aside-content .card-widget {
   background: var(--trans-light);
   backdrop-filter: var(--backdrop-filter);
+  -webkit-backdrop-filter: var(--backdrop-filter);
   border-radius: 18px;
   border: var(--border-style);
 }
@@ -276,6 +278,7 @@ div#page,
 div#archive {
   background: var(--trans-light);
   backdrop-filter: var(--backdrop-filter);
+  -webkit-backdrop-filter: var(--backdrop-filter);
   border: var(--border-style);
   border-radius: 20px;
 }
@@ -284,6 +287,7 @@ div#archive {
 #page-header.nav-fixed #nav {
   background: rgba(255, 255, 255, 0.75);
   backdrop-filter: var(--backdrop-filter);
+  -webkit-backdrop-filter: var(--backdrop-filter);
 }
 
 [data-theme="dark"] #page-header.nav-fixed #nav {
