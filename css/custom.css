@@ -36,6 +36,15 @@
   left: 50% !important;
   transform: translateX(-50%) !important;
 }
+
+#nav {
+  height: 50px;
+  /* 你可以改成你想要的高度 */
+  line-height: 20px;
+  /* 让菜单项垂直居中 */
+}
+
+
 /* 子菜单横向展示 */
 #nav .menus_items .menus_item:hover .menus_item_child {
   display: flex !important;
@@ -516,3 +525,4 @@ h6::before {
   -webkit-animation: ccc 6s linear infinite;
   animation: ccc 6s linear infinite;
 }
+
