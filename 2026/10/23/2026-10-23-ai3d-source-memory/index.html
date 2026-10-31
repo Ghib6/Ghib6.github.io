@@ -1,0 +1,483 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>AI 反复读源码却不动手？3D 游戏 Agent 的读取账本与精确恢复 | Ghib6</title><meta name="author" content="XBY"><meta name="copyright" content="XBY"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="ffffff"><meta name="description" content="复盘源码分页、摘要和修改意图之间的断层，解析如何让 Agent 记住已交付范围、识别过期版本，并把读取转化为实际修改。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="AI 反复读源码却不动手？3D 游戏 Agent 的读取账本与精确恢复">
+<meta property="og:url" content="https://www.ghib6.com/2026/10/23/2026-10-23-ai3d-source-memory/index.html">
+<meta property="og:site_name" content="Ghib6">
+<meta property="og:description" content="复盘源码分页、摘要和修改意图之间的断层，解析如何让 Agent 记住已交付范围、识别过期版本，并把读取转化为实际修改。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://www.ghib6.com/images/ai3d-source-memory/cover.png">
+<meta property="article:published_time" content="2026-10-23T12:44:00.000Z">
+<meta property="article:modified_time" content="2026-10-23T12:44:00.000Z">
+<meta property="article:author" content="XBY">
+<meta property="article:tag" content="AI Agent">
+<meta property="article:tag" content="LangGraph">
+<meta property="article:tag" content="上下文管理">
+<meta property="article:tag" content="源码记忆">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://www.ghib6.com/images/ai3d-source-memory/cover.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "AI 反复读源码却不动手？3D 游戏 Agent 的读取账本与精确恢复",
+  "url": "https://www.ghib6.com/2026/10/23/2026-10-23-ai3d-source-memory/",
+  "image": "https://www.ghib6.com/images/ai3d-source-memory/cover.png",
+  "datePublished": "2026-10-23T12:44:00.000Z",
+  "dateModified": "2026-10-23T12:44:00.000Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "XBY",
+      "url": "https://www.ghib6.com"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/moon.jpg"><link rel="canonical" href="https://www.ghib6.com/2026/10/23/2026-10-23-ai3d-source-memory/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.css" media="print" onload="this.media='all'"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!true && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', 'ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          const hour = new Date().getHours()
+          const isNight = hour <= 6 || hour >= 18
+          if (theme === undefined) isNight ? activateDarkMode() : activateLightMode()
+          else theme === 'light' ? activateLightMode() : activateDarkMode()
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: {"defaultEncoding":2,"translateDelay":0,"msgToTraditionalChinese":"繁","msgToSimplifiedChinese":"简"},
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: true,
+    post: true
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: {"chs_to_cht":"已切换为繁体中文","cht_to_chs":"已切换为简体中文","day_to_night":"已切换为深色模式","night_to_day":"已切换为浅色模式","bgLight":"#49b1f5","bgDark":"#1f1f1f","position":"top-right"},
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: true,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'AI 反复读源码却不动手？3D 游戏 Agent 的读取账本与精确恢复',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="stylesheet" href="/css/custom.css" media="defer" onload="this.media='all'"><link rel="stylesheet" href="/css/custom.css"><link rel="stylesheet" href="/css/universe.css"><link rel="stylesheet" href="/css/progress_bar.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end start --><link rel="stylesheet" href="https://cdn.cbd.int/hexo-butterfly-clock-anzhiyu/lib/clock.min.css" /><link rel="stylesheet" href="/css/footer-runtime.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-butterfly-tag-plugins-plus@latest/lib/assets/font-awesome-animation.min.css" media="defer" onload="this.media='all'"><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-butterfly-tag-plugins-plus@latest/lib/tag_plugins.css" media="defer" onload="this.media='all'"><script src="https://npm.elemecdn.com/hexo-butterfly-tag-plugins-plus@latest/lib/assets/carousel-touch.js"></script><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/animate.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-filter-gitcalendar/lib/gitcalendar.css" media="print" onload="this.media='all'"><!-- hexo injector head_end end --><meta name="generator" content="Hexo 8.0.0"></head><body><div id="web_bg" style="background-image: url(https://picbed.ghib6.com/img/15.jpg);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/touxiang.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">16</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">37</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">7</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fa fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fa fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fa fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fa fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><span class="site-page group hide"><i class="fa-fw fa fa-list"></i><span> 列表</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fa fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fa fa-video"></i><span> 电影</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/comments/"><i class="fa-fw fa fa-envelope-open"></i><span> 留言板</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fa fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/images/ai3d-source-memory/cover.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Ghib6</span></a><a class="nav-page-title" href="/"><span class="site-name">AI 反复读源码却不动手？3D 游戏 Agent 的读取账本与精确恢复</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fa fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fa fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fa fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fa fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><span class="site-page group hide"><i class="fa-fw fa fa-list"></i><span> 列表</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fa fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fa fa-video"></i><span> 电影</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/comments/"><i class="fa-fw fa fa-envelope-open"></i><span> 留言板</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fa fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">AI 反复读源码却不动手？3D 游戏 Agent 的读取账本与精确恢复</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-10-23T12:44:00.000Z" title="发表于 2026-10-23 12:44:00">2026-10-23</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-10-23T12:44:00.000Z" title="更新于 2026-10-23 12:44:00">2026-10-23</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/AI-3D-%E6%B8%B8%E6%88%8F%E7%94%9F%E6%88%90/">AI 3D 游戏生成</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">2k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>6分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span><span class="post-meta-separator">|</span><span class="post-meta-commentcount"><i class="far fa-comments fa-fw post-meta-icon"></i><span class="post-meta-label">评论数:</span><a href="/2026/10/23/2026-10-23-ai3d-source-memory/#post-comment"><span id="twikoo-count"><i class="fa-solid fa-spinner fa-spin"></i></span></a></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-10-23 12:44:00&quot;}" hidden></div><p>用户要求“优化操作手感和相机”，Agent 却不断检查文件、翻页、再检查同一段源码。调用次数在增加，真正的修改迟迟没有出现。这是 3D Game Agent 在近期调试中遇到的实际问题。</p>
+<p>10 月 22 日的改造围绕三个事实展开：哪些源码确实交付给过模型、这些源码现在是否仍然有效、模型下一步准备修改什么。本文基于本地实现与验收记录整理；涉及真实模型的历史结果均来自项目已有诊断文档，今天没有追加付费测试。</p>
+<h2 id="问题出在哪里：有读取记录，不等于有可用证据"><a href="#问题出在哪里：有读取记录，不等于有可用证据" class="headerlink" title="问题出在哪里：有读取记录，不等于有可用证据"></a>问题出在哪里：有读取记录，不等于有可用证据</h2><p>一次源码观察同时涉及三种信息：服务端检查过的文件清单、响应实际交付的行范围、模型当前上下文里仍保留的正文。三者不能互相替代。</p>
+<p>项目诊断记录指出，早期实现曾在工作上下文达到固定字符阈值时，仅保留最新完整源码结果。模型拿到后一页时，前一页可能已经被压缩；为了精确修改，它又请求前一页，造成相邻页之间来回补读。该阶段甚至没有触发摘要模型，说明不能把所有重复读取都归因于摘要质量。</p>
+<p>修复移除了生产默认的这一提前字符截断，让上下文主要按官方摘要机制与溢出恢复处理。只有显式配置 HTTP 容量保护且接近容量时，才预先压缩旧源码。</p>
+<h2 id="第一步：把源码交付做成可核对的协议"><a href="#第一步：把源码交付做成可核对的协议" class="headerlink" title="第一步：把源码交付做成可核对的协议"></a>第一步：把源码交付做成可核对的协议</h2><p><code>inspect_project</code> 的小结果直接返回，大结果按文件和完整行分页。源码响应预算为包含 JSON 包装的 24KiB，而非正文单独占满 24KiB。</p>
+<p>响应中的 <code>source</code> 记录本页实际交付范围，<code>files</code> 是服务端读取清单，<code>remainingSources</code> 描述结果游标之后尚未返回的范围。结果页游标与文件源码行偏移属于不同坐标，调用方必须分别使用。</p>
+<div class="mermaid-wrap"><pre class="mermaid-src" hidden>
+    flowchart TD
+  A[定位相关源码] --&gt; B[按完整行返回正文与版本]
+  B --&gt; C[账本记录实际交付范围]
+  C --&gt; D{当前版本与证据一致吗}
+  D --&gt;|否| E[补读当前版本]
+  E --&gt; C
+  D --&gt;|是| F{精确正文仍在上下文吗}
+  F --&gt;|否| G[按引用或范围恢复正文]
+  G --&gt; H[声明局部修改意图]
+  F --&gt;|是| H
+  H --&gt; I[修改、核对差异与交接]
+  I --&gt; J[构建与交互验收]
+  </pre></div>
+
+<p>源码引用由任务范围和内容确定，重复请求可以复用未过期引用。读取引用时重新校验 SHA-256 版本；源码改变返回 <code>STALE_SOURCE</code>，引用失效返回 <code>REFERENCE_EXPIRED</code>，避免拿着旧证据修改新文件。</p>
+<h2 id="第二步：账本独立于摘要，记录范围而非复制源码"><a href="#第二步：账本独立于摘要，记录范围而非复制源码" class="headerlink" title="第二步：账本独立于摘要，记录范围而非复制源码"></a>第二步：账本独立于摘要，记录范围而非复制源码</h2><p>LangGraph 的 <code>gameReadLedger</code> 持久保存角色、工具调用标识、文件版本、已交付行范围、结果页索引和引用，不把整份源码再存一遍。每次模型请求前，程序重新核对版本，并注入合并后的交付进展。</p>
+<p>下面是概念示例，帮助理解证据结构，不是可直接替换项目 Schema 的完整定义：</p>
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> <span class="title class_">DeliveredSource</span> = &#123;</span><br><span class="line">  <span class="attr">actor</span>: <span class="built_in">string</span>;</span><br><span class="line">  <span class="attr">path</span>: <span class="built_in">string</span>;</span><br><span class="line">  <span class="attr">revision</span>: <span class="built_in">string</span>;</span><br><span class="line">  <span class="attr">deliveredLines</span>: <span class="title class_">Array</span>&lt;[<span class="built_in">number</span>, <span class="built_in">number</span>]&gt;;</span><br><span class="line">  <span class="attr">resultId</span>?: <span class="built_in">string</span>;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>并行结束和重读旧页时，不能把“最后返回的页码”直接当成最新进度。实现对已交付行范围与结果行索引取并集，从连续已交付索引计算下一处缺口。因此后返回的旧页不会让游标倒退；到达结果尾，也不意味着此前每页均已交付。</p>
+<p>旧 checkpoint 只有明确的交付范围才会被恢复为已读证据，没有范围的记录保持未知。这个保守选择避免模型把一份目录清单误当成“所有文件都读完了”。</p>
+<p>账本也不保证正文仍然可见。它提供的是找回精确证据的索引；需要逐行编辑时仍应恢复对应正文，不能仅凭“此前读过”的标签猜测实现。</p>
+<h2 id="第三步：让读取服务于具体修改"><a href="#第三步：让读取服务于具体修改" class="headerlink" title="第三步：让读取服务于具体修改"></a>第三步：让读取服务于具体修改</h2><p>新增 <code>record_edit_focus</code> 保存局部修改意图、证据版本与范围，不保存源码正文。摘要后必要时从已交付消息恢复有限正文；缺证据可以继续读，证据范围或版本更新后重新评估修改意图。</p>
+<p>这里没有通过禁止读取来强迫模型写代码。更有效的约束是让模型回答：准备修改哪个局部行为，依据哪份当前证据，还缺什么信息。</p>
+<p>相机与操作手感这类可独立验证的目标，也改为默认串行委派，由父 Agent 聚合完成度。每个开发子任务有自己的交付基线，避免前一个子任务留下的账本阻挡后续合理读取。</p>
+<p>摘要模板则固定保留用户要求、约束、已确认事实、拟修改点、实际改动、验证、未决问题和下一步，并合并上一份摘要。项目配置的摘要目标为 24,000 Token、近期上下文保留目标为 8,000 Token；这些是上下文管理参数，不应解释成生产任务调用次数上限。</p>
+<h2 id="验收怎么读：成功路径和试错成本都要保留"><a href="#验收怎么读：成功路径和试错成本都要保留" class="headerlink" title="验收怎么读：成功路径和试错成本都要保留"></a>验收怎么读：成功路径和试错成本都要保留</h2><p>项目诊断记录显示，最终一次真实验收完成了 3 个文件的修改、结构化交接、构建、交互和私有版本保存。最终轮共 29 次模型请求、357,911 Token，首次写入发生在第 7 次工作调用。</p>
+<p>但这不是全部试错成本：记录中的九轮真实测试合计 2,981,490 Token，前面多轮因预算预留不足停止。不能只拿最终一轮与旧失败任务比较，声称获得相同完成度下的成本降幅。</p>
+<p>还有两个重要边界：最终真实成功轮没有触发摘要；连续三次摘要后仍能写入与交接，来自离线回归。视觉模型当时未配置，最终私有版本为 <code>needs_review</code>，不能称作视觉评审通过。一轮成功也不能证明任意任务都不会再次循环。</p>
+<p>今天实际重跑了项目现有定向测试：</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 在 apps/agent 目录执行，不调用供应商 API</span></span><br><span class="line">npx tsx tests/source<span class="literal">-memory</span>.test.ts</span><br></pre></td></tr></table></figure>
+
+<p>测试通过，覆盖源码内联与分页、24KiB 包装预算、引用、版本变化、恢复、相邻页同时可见、旧记录，以及连续三次摘要后的实际写入和已核对交接。这些测试支持的是对应协议与回归场景，不是今天重新完成了一次真实游戏生成。</p>
+<h2 id="可复用的工程经验"><a href="#可复用的工程经验" class="headerlink" title="可复用的工程经验"></a>可复用的工程经验</h2><ol>
+<li><strong>交付元数据由程序生成。</strong> 文件清单、已交付范围和当前版本分别记录，避免让自然语言摘要承担事实数据库的职责。</li>
+<li><strong>上下文压缩先检查证据损失。</strong> 省掉刚收到的相邻源码页，可能换来更多重复调用；诊断要查看真实模型输入，而不只看工具调用计数。</li>
+<li><strong>精确修改需要正文。</strong> 账本和摘要负责定位，引用恢复负责补齐细节，两者一起才能支持编辑。</li>
+<li><strong>完成要靠差异与验收。</strong> 读取进度、修改意图都只是中间状态，真实文件改动、结构化交接和构建交互结果才是后续依据。</li>
+</ol>
+<p>这次修复的价值，是把“Agent 似乎记得读过什么”变成能核对版本、范围和修改结果的执行流程。对于复杂 3D 游戏代码，稳定地从观察走向修改，比单纯增加可读文件数更能推动任务完成。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://www.ghib6.com">XBY</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://www.ghib6.com/2026/10/23/2026-10-23-ai3d-source-memory/">https://www.ghib6.com/2026/10/23/2026-10-23-ai3d-source-memory/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://www.ghib6.com" target="_blank">Ghib6</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/AI-Agent/">AI Agent</a><a class="post-meta__tags" href="/tags/%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86/">上下文管理</a><a class="post-meta__tags" href="/tags/%E6%BA%90%E7%A0%81%E8%AE%B0%E5%BF%86/">源码记忆</a><a class="post-meta__tags" href="/tags/LangGraph/">LangGraph</a></div><div class="post-share"><div class="social-share" data-image="/images/ai3d-source-memory/cover.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/10/24/2026-10-24-ai3d-source-zip-import/" title="源码 ZIP 导入：让 AI 3D 游戏从依赖安装走到可玩预览"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/images/ai3d-source-zip-import/cover.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">源码 ZIP 导入：让 AI 3D 游戏从依赖安装走到可玩预览</div></div><div class="info-2"><div class="info-item-1">AI 3D 游戏生成平台除了从零生成，还需要接住用户已有的作品。上传一份源码 ZIP 后，平台必须找到项目入口、识别包管理器、安装依赖、执行构建，再把静态产物变成可预览的游戏。 10 月 23 日，项目为单项目 npm&#x2F;pnpm 源码包补充了明确的依赖安装计划。本文依据当前本地源码和配套文档复盘；今天实际运行的是导入回归测试，没有运行真实 ZIP 的 Docker 集成验收。 一条导入链路，多个失败边界源码包需要 package.json 中提供非空的 scripts.build。导入器在验证依赖和包管理器之后，将源码复制进任务独占 Docker 卷，安装阶段允许联网，构建阶段禁用网络。构建成功后，再检查输出目录中的静态游戏文件。      flowchart TD   A[上传源码 ZIP] --&gt; B[校验归档路径并定位项目根目录]   B --&gt; C[验证 build、依赖声明与锁文件]   C --&gt; D[确定包管理器与明确版本]   D --&gt; E[独占卷内安装依赖]   E --&gt; F{安装成功吗}   F --&gt;|否| ...</div></div></div></a><a class="pagination-related" href="/2026/10/22/2026-10-22-ai3d-agent-tool-activity/" title="AI 游戏生成的工具执行看得见：并行调用、失败识别与状态恢复"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/images/ai3d-tool-activity/cover.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">AI 游戏生成的工具执行看得见：并行调用、失败识别与状态恢复</div></div><div class="info-2"><div class="info-item-1">生成一个 3D 游戏需要等待：Agent 会读源码、搜索示例、修改组件、构建、截图评审，最后发布。用户看到一个一直旋转的加载图标，很难判断它正在有效推进，还是停在某个失败操作上。 10 月 21 日，项目新增了聊天栏工具执行状态。这次改造把工具调用的开始、完成和失败变成结构化事件，再由前端还原当前操作与最近执行记录。本文基于当天本地源码和离线测试复盘；这些修改仍有未提交部分，不能把本文当成线上完整生成验收报告。 从一个加载图标，到可核对的执行事实目标很具体：聊天输入框上方显示当前操作，展开后能看到最近 12 项操作、角色和完成耗时。涉及的操作包括读取源码、安装组件、更新计划、构建、评审与发布。 流程不是让模型自己撰写“我正在做什么”，而是在真实工具处理函数外包一层活动中间件。工具处理前发送 started，返回后检查结果，再发送 completed 或 failed。现有会话事件持久化及 Socket 推送负责传递状态，断线后沿用 recent 轮询链路补取事件。      flowchart TD   A[模型选择工具] --&gt; B[检查任务是否仍有效]   B --&g...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2026/10/25/2026-10-25-ai3d-explicit-edit-workflow/" title="AI 负责改代码，流程负责验收：3D 游戏 Agent 的原生工具与 LangGraph 编辑流程"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/images/ai3d-edit-workflow/cover.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-10-25</div><div class="info-item-2">AI 负责改代码，流程负责验收：3D 游戏 Agent 的原生工具与 LangGraph 编辑流程</div></div><div class="info-2"><div class="info-item-1">编辑一个已有 3D 游戏，通常需要先理解相关源码，再修改、构建、修复、评审并保存版本。哪些步骤适合交给模型决策，哪些步骤应该由程序明确推进，是这轮项目改造的核心。 10 月 24 日的本地实现有两项重要变化：源码定位与读写统一使用 SDK 内置文件工具；编辑任务通过显式 LangGraph 图组织后续验收。本文聚焦编辑入口，不把它推广成所有生成任务都采用同一条图。今天重跑了对应离线测试，没有追加真实付费模型调用。 先拆清两种循环开发角色内部仍有模型与工具之间的循环：模型决定读取哪个文件、搜索哪个入口、怎样编辑。该循环交由 createAgent 和 SDK 文件中间件处理。 开发角色外部则是业务流程：代码交接通过后必须构建，构建失败才进入修复，评审结果决定保存版本还是继续修复。编辑入口的这些路由由 createEditWorkflow() 明确定义，不再消耗一次模型调用来选择下一个构建或发布工具。      flowchart TD   A[START] --&gt; B[implement：开发与真实交接]   B --&gt; C[build：版本核对与构建]   C --&...</div></div></div></a><a class="pagination-related" href="/2026/10/26/2026-10-26-ai3d-agent-middleware/" title="Agent 中间件可插拔，有边界：统一组装、依赖校验与执行保护"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/images/ai3d-agent-middleware/cover.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-10-26</div><div class="info-item-2">Agent 中间件可插拔，有边界：统一组装、依赖校验与执行保护</div></div><div class="info-2"><div class="info-item-1">3D 游戏生成平台有多种 Agent 入口：Supervisor、设计与开发子角色、直接修改 worker，以及只读问答。它们都要处理上下文、文件工具和业务状态，但不能拥有完全相同的权限与执行行为。 如果每个入口各自维护一份中间件数组，一处新增停止检查，另一处可能漏掉；关闭聊天状态提示，也可能意外关闭原本藏在同一模块里的执行保护。10 月 25 日的重构将这些规则集中到 createGameMiddleware()，同时明确哪些增强功能可以关闭，哪些约束必须保留。 本文依据当前本地源码与配套文档复盘。今天实际重跑了组装回归测试，没有追加付费模型调用，也没有修改生成游戏。 一个组装入口，多种角色配置统一入口位于 apps/agent/src/agent/middleware/index.ts。调用方传入 profile、角色、工作目录、结果存储及所需能力，工厂组装应用中间件，再交给 LangChain 的 middleware 配置。钩子的实际执行仍由框架负责。 当前 profile 包括 supervisor、planner、developer、edit 和 question。例...</div></div></div></a><a class="pagination-related" href="/2026/10/27/2026-10-27-ai3d-on-demand-project-context/" title="AI 游戏助手如何按需打开项目：轻量对话、上下文接续与无修改完成"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/images/ai3d-on-demand-project-context/cover.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-10-27</div><div class="info-item-2">AI 游戏助手如何按需打开项目：轻量对话、上下文接续与无修改完成</div></div><div class="info-2"><div class="info-item-1">用户在 AI 3D 游戏生成平台里说一句“hello”，应该得到普通回复；问“当前相机在哪里配置”，需要查看项目；要求“把相机拉远一点”，才涉及修改和验收。这几种交流发生在同一个聊天窗口，入口如果总是加载全部源码工具、建立候选工作区并要求生成版本，日常交流就会承担开发任务的成本。 10 月 26 日，项目将消息入口改为主 Agent 自主选择工具：初始只提供少量对话与 open_project，需要项目能力时再加载。本文依据当天本地代码与验收文档复盘；10 月 25 日文章中的固定编辑图已在后续改造中删除，创建和编辑现统一进入 createGameDeepAgent。阅读旧文章时应以各自日期的实现为准。 目标：让能力随任务展开当前入口位于 apps/agent/src/agent/conversation-agent.ts。系统提示要求助手自然回应，需要当前项目事实或开展工作时调用 open_project，只在任务需要时制定计划。 这里没有独立意图分类器，也没有先输出 conversation、question、edit 三分类的 Schema。是否打开项目，是主 Agent ...</div></div></div></a><a class="pagination-related" href="/2026/10/21/2026-10-21-ai-3d-game-asset-pipeline/" title="把 AI 3D 游戏生成做成可交付产品：从素材输入到可导出场景的资产链路"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/images/ai3d-asset-pipeline/ai3d-asset-pipeline-cover.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-10-21</div><div class="info-item-2">把 AI 3D 游戏生成做成可交付产品：从素材输入到可导出场景的资产链路</div></div><div class="info-2"><div class="info-item-1">AI 3D 游戏生成里，最容易被低估的一环是“资产交付”。模型能够生成一个角色或一段 Three.js 代码，并不意味着用户能把它稳定地放进游戏、在浏览器中预览，再带到 Blender 或后续项目里继续使用。 这轮对 3D Game Agent 的复盘聚焦于近期落地的资产库与游戏资产导出能力。它把“上传&#x2F;选择一个资源”拆成一条可验证的链路：来源可追溯、权限可判断、运行时可用、生成过程可消费、最终产物可导出。  先定义真正的目标：不是一个文件，而是一份可靠交付物在自然语言生成 3D 游戏的平台中，资产至少会经历三种身份：  创作输入：用户上传、从资源库挑选，或通过文生 3D 生成。 游戏运行时资源：被安装到某个候选沙盒中，供 R3F&#x2F;Three.js 加载。 可交付产物：用户能预览、下载模型，或导出带层级的场景 GLB。  如果直接把对象存储 URL 交给生成的游戏代码，短期很省事，但会立即遇到几个问题：登录 Cookie、签名 URL、外网可用性、资源撤回，以及生成沙盒的网络隔离都会让游戏运行结果不可复现。因此本项目把“资源文件”和“资源元数据&#x2F;权限...</div></div></div></a><a class="pagination-related" href="/2026/10/22/2026-10-22-ai3d-agent-tool-activity/" title="AI 游戏生成的工具执行看得见：并行调用、失败识别与状态恢复"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/images/ai3d-tool-activity/cover.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-10-22</div><div class="info-item-2">AI 游戏生成的工具执行看得见：并行调用、失败识别与状态恢复</div></div><div class="info-2"><div class="info-item-1">生成一个 3D 游戏需要等待：Agent 会读源码、搜索示例、修改组件、构建、截图评审，最后发布。用户看到一个一直旋转的加载图标，很难判断它正在有效推进，还是停在某个失败操作上。 10 月 21 日，项目新增了聊天栏工具执行状态。这次改造把工具调用的开始、完成和失败变成结构化事件，再由前端还原当前操作与最近执行记录。本文基于当天本地源码和离线测试复盘；这些修改仍有未提交部分，不能把本文当成线上完整生成验收报告。 从一个加载图标，到可核对的执行事实目标很具体：聊天输入框上方显示当前操作，展开后能看到最近 12 项操作、角色和完成耗时。涉及的操作包括读取源码、安装组件、更新计划、构建、评审与发布。 流程不是让模型自己撰写“我正在做什么”，而是在真实工具处理函数外包一层活动中间件。工具处理前发送 started，返回后检查结果，再发送 completed 或 failed。现有会话事件持久化及 Socket 推送负责传递状态，断线后沿用 recent 轮询链路补取事件。      flowchart TD   A[模型选择工具] --&gt; B[检查任务是否仍有效]   B --&g...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/touxiang.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">XBY</div><div class="author-info-description">这是一个未完成的博客</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">16</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">37</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">7</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/Ghib6"><i class="fab fa-github"></i><span>前往妙妙小屋</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/Ghib6" target="_blank" title="Github"><i class="fab fa-github"></i></a><a class="social-icon" href="https://mail.163.com/" target="_blank" title="Email"><i class="fa fa-envelope"></i></a><a class="social-icon" href="https://space.bilibili.com/324065498" target="_blank" title="bilibili"><i class="fab fa-bilibili"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">欢迎来到我的博客！</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%97%AE%E9%A2%98%E5%87%BA%E5%9C%A8%E5%93%AA%E9%87%8C%EF%BC%9A%E6%9C%89%E8%AF%BB%E5%8F%96%E8%AE%B0%E5%BD%95%EF%BC%8C%E4%B8%8D%E7%AD%89%E4%BA%8E%E6%9C%89%E5%8F%AF%E7%94%A8%E8%AF%81%E6%8D%AE"><span class="toc-number">1.</span> <span class="toc-text">问题出在哪里：有读取记录，不等于有可用证据</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC%E4%B8%80%E6%AD%A5%EF%BC%9A%E6%8A%8A%E6%BA%90%E7%A0%81%E4%BA%A4%E4%BB%98%E5%81%9A%E6%88%90%E5%8F%AF%E6%A0%B8%E5%AF%B9%E7%9A%84%E5%8D%8F%E8%AE%AE"><span class="toc-number">2.</span> <span class="toc-text">第一步：把源码交付做成可核对的协议</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC%E4%BA%8C%E6%AD%A5%EF%BC%9A%E8%B4%A6%E6%9C%AC%E7%8B%AC%E7%AB%8B%E4%BA%8E%E6%91%98%E8%A6%81%EF%BC%8C%E8%AE%B0%E5%BD%95%E8%8C%83%E5%9B%B4%E8%80%8C%E9%9D%9E%E5%A4%8D%E5%88%B6%E6%BA%90%E7%A0%81"><span class="toc-number">3.</span> <span class="toc-text">第二步：账本独立于摘要，记录范围而非复制源码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC%E4%B8%89%E6%AD%A5%EF%BC%9A%E8%AE%A9%E8%AF%BB%E5%8F%96%E6%9C%8D%E5%8A%A1%E4%BA%8E%E5%85%B7%E4%BD%93%E4%BF%AE%E6%94%B9"><span class="toc-number">4.</span> <span class="toc-text">第三步：让读取服务于具体修改</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%AA%8C%E6%94%B6%E6%80%8E%E4%B9%88%E8%AF%BB%EF%BC%9A%E6%88%90%E5%8A%9F%E8%B7%AF%E5%BE%84%E5%92%8C%E8%AF%95%E9%94%99%E6%88%90%E6%9C%AC%E9%83%BD%E8%A6%81%E4%BF%9D%E7%95%99"><span class="toc-number">5.</span> <span class="toc-text">验收怎么读：成功路径和试错成本都要保留</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%AF%E5%A4%8D%E7%94%A8%E7%9A%84%E5%B7%A5%E7%A8%8B%E7%BB%8F%E9%AA%8C"><span class="toc-number">6.</span> <span class="toc-text">可复用的工程经验</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/10/31/2026-10-31-ai3d-shared-contracts/" title="从项目早期讲起：AI 游戏平台的共享契约与 JSON 数据边界"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/images/ai3d-shared-contracts/cover.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="从项目早期讲起：AI 游戏平台的共享契约与 JSON 数据边界"/></a><div class="content"><a class="title" href="/2026/10/31/2026-10-31-ai3d-shared-contracts/" title="从项目早期讲起：AI 游戏平台的共享契约与 JSON 数据边界">从项目早期讲起：AI 游戏平台的共享契约与 JSON 数据边界</a><time datetime="2026-10-31T09:00:00.000Z" title="发表于 2026-10-31 09:00:00">2026-10-31</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/10/30/2026-10-30-ai3d-account-project-permissions/" title="从项目早期讲起：账号身份如何关联 AI 游戏项目权限"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/images/ai3d-account-project-permissions/cover.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="从项目早期讲起：账号身份如何关联 AI 游戏项目权限"/></a><div class="content"><a class="title" href="/2026/10/30/2026-10-30-ai3d-account-project-permissions/" title="从项目早期讲起：账号身份如何关联 AI 游戏项目权限">从项目早期讲起：账号身份如何关联 AI 游戏项目权限</a><time datetime="2026-10-30T10:32:00.000Z" title="发表于 2026-10-30 10:32:00">2026-10-30</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/10/28/2026-10-28-ai3d-sandbox-version-foundation/" title="从项目早期讲起：AI 3D 游戏的源码、预览与版本恢复如何保存"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/images/ai3d-sandbox-version-foundation/cover.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="从项目早期讲起：AI 3D 游戏的源码、预览与版本恢复如何保存"/></a><div class="content"><a class="title" href="/2026/10/28/2026-10-28-ai3d-sandbox-version-foundation/" title="从项目早期讲起：AI 3D 游戏的源码、预览与版本恢复如何保存">从项目早期讲起：AI 3D 游戏的源码、预览与版本恢复如何保存</a><time datetime="2026-10-28T09:00:00.000Z" title="发表于 2026-10-28 09:00:00">2026-10-28</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/10/27/2026-10-27-ai3d-on-demand-project-context/" title="AI 游戏助手如何按需打开项目：轻量对话、上下文接续与无修改完成"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/images/ai3d-on-demand-project-context/cover.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="AI 游戏助手如何按需打开项目：轻量对话、上下文接续与无修改完成"/></a><div class="content"><a class="title" href="/2026/10/27/2026-10-27-ai3d-on-demand-project-context/" title="AI 游戏助手如何按需打开项目：轻量对话、上下文接续与无修改完成">AI 游戏助手如何按需打开项目：轻量对话、上下文接续与无修改完成</a><time datetime="2026-10-27T09:00:00.000Z" title="发表于 2026-10-27 09:00:00">2026-10-27</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/10/26/2026-10-26-ai3d-agent-middleware/" title="Agent 中间件可插拔，有边界：统一组装、依赖校验与执行保护"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/images/ai3d-agent-middleware/cover.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Agent 中间件可插拔，有边界：统一组装、依赖校验与执行保护"/></a><div class="content"><a class="title" href="/2026/10/26/2026-10-26-ai3d-agent-middleware/" title="Agent 中间件可插拔，有边界：统一组装、依赖校验与执行保护">Agent 中间件可插拔，有边界：统一组装、依赖校验与执行保护</a><time datetime="2026-10-26T09:00:00.000Z" title="发表于 2026-10-26 09:00:00">2026-10-26</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2020 - 2026 By XBY</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="translateLink" type="button" title="简繁转换">繁</button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="/js/tw_cn.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page/instantpage.min.js" type="module"></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js"></script><script src="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (false) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://hexo-twikoo.ghib6.com/',
+      region: '',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://hexo-twikoo.ghib6.com/',
+      region: '',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    GLOBAL_CONFIG_SITE.pageType === 'post' && getCount()
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script defer src="/js/light.js"></script><canvas id="universe"></canvas><script defer src="/js/universe.js"></script><script defer src="/js/cursor.js"></script><script defer src="/js/pjax-no-enter-animation.js?v=20260511"></script><script defer src="/js/webinfo-count.js?v=20260509"></script><div class="aplayer no-destroy" data-id="1985708788" data-server="netease" data-type="song" data-fixed="true" data-mini="true" data-listFolded="false" data-order="random" data-preload="none" data-autoplay="false" muted></div><script id="canvas_nest" defer="defer" color="0,0,255" opacity="0.7" zIndex="-1" count="50" mobile="false" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/canvas-nest.min.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/activate-power-mode.min.js"></script><script>POWERMODE.colorful = true;
+POWERMODE.shake = true;
+POWERMODE.mobile = false;
+document.body.addEventListener('input', POWERMODE);
+</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/metingjs/dist/Meting.min.js"></script><script>(() => {
+  const destroyAplayer = () => {
+    if (window.aplayers) {
+      for (let i = 0; i < window.aplayers.length; i++) {
+        if (!window.aplayers[i].options.fixed) {
+          window.aplayers[i].destroy()
+        }
+      }
+    }
+  }
+
+  const runMetingJS = () => {
+    typeof loadMeting === 'function' && document.getElementsByClassName('aplayer').length && loadMeting()
+  }
+
+  btf.addGlobalFn('pjaxSend', destroyAplayer, 'destroyAplayer')
+  btf.addGlobalFn('pjaxComplete', loadMeting, 'runMetingJS')
+})()</script><script src="https://cdn.jsdelivr.net/npm/pjax/pjax.min.js"></script><script>(() => {
+  const pjaxSelectors = ["head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+  window.pjax = new Pjax({
+    elements: 'a:not([target="_blank"])',
+    selectors: pjaxSelectors,
+    cacheBust: false,
+    analytics: false,
+    scrollRestoration: false
+  })
+
+  const triggerPjaxFn = (val) => {
+    if (!val) return
+    Object.values(val).forEach(fn => {
+      try {
+        fn()
+      } catch (err) {
+        console.debug('Pjax callback failed:', err)
+      }
+    })
+  }
+
+  document.addEventListener('pjax:send', () => {
+    // removeEventListener
+    btf.removeGlobalFnEvent('pjaxSendOnce')
+    btf.removeGlobalFnEvent('themeChange')
+
+    // reset readmode
+    const $bodyClassList = document.body.classList
+    if ($bodyClassList.contains('read-mode')) $bodyClassList.remove('read-mode')
+
+    triggerPjaxFn(window.globalFn.pjaxSend)
+  })
+
+  document.addEventListener('pjax:complete', () => {
+    btf.removeGlobalFnEvent('pjaxCompleteOnce')
+    document.querySelectorAll('script[data-pjax]').forEach(item => {
+      const newScript = document.createElement('script')
+      const content = item.text || item.textContent || item.innerHTML || ""
+      Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+      newScript.appendChild(document.createTextNode(content))
+      item.parentNode.replaceChild(newScript, item)
+    })
+
+    triggerPjaxFn(window.globalFn.pjaxComplete)
+  })
+
+  document.addEventListener('pjax:error', e => {
+    if (e.request.status === 404) {
+      const usePjax = true
+      true
+        ? (usePjax ? pjax.loadUrl('/404.html') : window.location.href = '/404.html')
+        : window.location.href = e.request.responseURL
+    }
+  })
+})()</script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div><!-- hexo injector body_end start --><script data-pjax>
+  function butterfly_clock_anzhiyu_injector_config(){
+    var parent_div_git = document.getElementsByClassName('sticky_layout')[0];
+    var item_html = '<div class="card-widget card-clock"><div class="card-glass"><div class="card-background"><div class="card-content"><div id="hexo_electric_clock"><img class="entered loading" id="card-clock-loading" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.cbd.int/hexo-butterfly-clock-anzhiyu/lib/loading.gif" style="height: 120px; width: 100%;" data-ll-status="loading"/></div></div></div></div></div>';
+    console.log('已挂载butterfly_clock_anzhiyu')
+    if(parent_div_git) {
+      parent_div_git.insertAdjacentHTML("afterbegin",item_html)
+    }
+  }
+  var elist = 'null'.split(',');
+  var cpage = location.pathname;
+  var epage = '/';
+  var qweather_key = 'b16a1fa0e63c46a4b8f28abfb06ae3fe';
+  var gaud_map_key = 'e2b04289e870b005374ee030148d64fd&s=rsv3';
+  var baidu_ak_key = 'undefined';
+  var flag = 0;
+  var clock_rectangle = '113.34532,23.15624';
+  var clock_default_rectangle_enable = 'false';
+
+  for (var i=0;i<elist.length;i++){
+    if (cpage.includes(elist[i])){
+      flag++;
+    }
+  }
+
+  if ((epage ==='all')&&(flag == 0)){
+    butterfly_clock_anzhiyu_injector_config();
+  }
+  else if (epage === cpage){
+    butterfly_clock_anzhiyu_injector_config();
+  }
+  </script><script src="https://widget.qweather.net/simple/static/js/he-simple-common.js?v=2.0"></script><script data-pjax src="/js/electric-clock.js?v=20260509-ip"></script><script data-pjax>
+  function butterfly_footer_beautify_injector_config(){
+    var parent_div_git = document.getElementById('footer');
+    var item_html = '<div id="workboard"></div><p id="ghbdages"><a class="github-badge" target="_blank" href="https://hexo.io/" style="margin-inline:5px" data-title="博客框架为Hexo_v6.2.0" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Frame-Hexo-blue?style=flat&amp;logo=hexo" alt=""/></a><a class="github-badge" target="_blank" href="https://butterfly.js.org/" style="margin-inline:5px" data-title="主题版本Butterfly_v4.3.1" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Theme-Butterfly-6513df?style=flat&amp;logo=bitdefender" alt=""/></a><a class="github-badge" target="_blank" href="https://vercel.com/" style="margin-inline:5px" data-title="本站采用多线部署，主线路托管于Vercel" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Hosted-Vercel-brightgreen?style=flat&amp;logo=Vercel" alt=""/></a><a class="github-badge" target="_blank" href="https://dashboard.4everland.org/" style="margin-inline:5px" data-title="本站采用多线部署，备用线路托管于4EVERLAND" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Hosted-4EVERLAND-22DDDD?style=flat&amp;logo=IPFS" alt=""/></a><a class="github-badge" target="_blank" href="https://github.com/" style="margin-inline:5px" data-title="本站项目由Github托管" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Source-Github-d021d6?style=flat&amp;logo=GitHub" alt=""/></a><a class="github-badge" target="_blank" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" style="margin-inline:5px" data-title="本站采用知识共享署名-非商业性使用-相同方式共享4.0国际许可协议进行许可" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Copyright-BY--NC--SA%204.0-d42328?style=flat&amp;logo=Claris" alt=""/></a></p>';
+    console.log('已挂载butterfly_footer_beautify')
+    parent_div_git.insertAdjacentHTML("beforeend",item_html)
+    }
+  var elist = 'null'.split(',');
+  var cpage = location.pathname;
+  var epage = 'all';
+  var flag = 0;
+
+  for (var i=0;i<elist.length;i++){
+    if (cpage.includes(elist[i])){
+      flag++;
+    }
+  }
+
+  if ((epage ==='all')&&(flag == 0)){
+    butterfly_footer_beautify_injector_config();
+  }
+  else if (epage === cpage){
+    butterfly_footer_beautify_injector_config();
+  }
+  </script><script async src="/js/footer-runtime.js?v=20260509"></script><script async src="//at.alicdn.com/t/font_2032782_8d5kxvn09md.js"></script><div class="js-pjax"><script async="async">var arr = document.getElementsByClassName('recent-post-item');
+for(var i = 0;i<arr.length;i++){
+    arr[i].classList.add('wow');
+    arr[i].classList.add('animate__zoomIn');
+    arr[i].setAttribute('data-wow-duration', '1s');
+    arr[i].setAttribute('data-wow-delay', '1s');
+    arr[i].setAttribute('data-wow-offset', '100');
+    arr[i].setAttribute('data-wow-iteration', '1');
+  }</script><script async="async">var arr = document.getElementsByClassName('card-widget');
+for(var i = 0;i<arr.length;i++){
+    arr[i].classList.add('wow');
+    arr[i].classList.add('animate__zoomIn');
+    arr[i].setAttribute('data-wow-duration', '');
+    arr[i].setAttribute('data-wow-delay', '');
+    arr[i].setAttribute('data-wow-offset', '');
+    arr[i].setAttribute('data-wow-iteration', '');
+  }</script></div><script defer src="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/wow.min.js"></script><script defer src="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/wow_init.js"></script><script data-pjax src="https://npm.elemecdn.com/hexo-filter-gitcalendar/lib/gitcalendar.js"></script><script data-pjax>
+  function gitcalendar_injector_config(){
+      var parent_div_git = document.getElementById('gitZone');
+      var item_html = '<div class="recent-post-item" id="gitcalendarBar" style="width:100%;height:auto;padding:10px;"><style>#git_container{min-height: 280px}@media screen and (max-width:650px) {#git_container{min-height: 0px}}</style><div id="git_loading" style="width:10%;height:100%;margin:0 auto;display: block;"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 50 50" style="enable-background:new 0 0 50 50" xml:space="preserve"><path fill="#d0d0d0" d="M25.251,6.461c-10.318,0-18.683,8.365-18.683,18.683h4.068c0-8.071,6.543-14.615,14.615-14.615V6.461z" transform="rotate(275.098 25 25)"><animatetransform attributeType="xml" attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.6s" repeatCount="indefinite"></animatetransform></path></svg><style>#git_container{display: none;}</style></div><div id="git_container"></div></div>';
+      parent_div_git.insertAdjacentHTML("afterbegin",item_html)
+      console.log('已挂载gitcalendar')
+      }
+
+    if( document.getElementById('gitZone') && (location.pathname ==='/about/'|| '/about/' ==='all')){
+        gitcalendar_injector_config()
+        GitCalendarInit("https://gh-calendar.rschristian.dev/user/Ghib6",['#d9e0df', '#c6e0dc', '#a8dcd4', '#9adcd2', '#89ded1', '#77e0d0', '#5fdecb', '#47dcc6', '#39dcc3', '#1fdabe', '#00dab9'],'Ghib6')
+    }
+  </script><!-- hexo injector body_end end --><script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"debug":false,"model":{"jsonPath":"/live2dw/assets/wanko.model.json"},"display":{"position":"left","width":150,"height":300},"mobile":{"show":false},"log":false});</script></body></html>
