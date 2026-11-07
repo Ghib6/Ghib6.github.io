@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Ghib6 Blog CMS</title>
+  </head>
+  <body>
+    <script>
+      window.CMS_MANUAL_INIT = true;
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/decap-cms@3.12.2/dist/decap-cms.js"></script>
+    <script src="/admin/picbed-insert.js"></script>
+    <script>
+      window.addEventListener("load", function () {
+        if (window.CMS) {
+          window.CMS.init({
+            config: "/admin/config.yml"
+          });
+        } else {
+          document.body.innerHTML = "<p>Decap CMS failed to load.</p>";
+        }
+      });
+    </script>
+  </body>
+</html>
