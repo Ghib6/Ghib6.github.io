@@ -1,0 +1,1 @@
+{"enabled":true,"name":"博客助手","welcome":"你好，可以问我博客里的知识，也可以让我讲解当前文章。","endpoint":"https://blog-cms-oauth-dusky.vercel.app/api/pet-chat"}

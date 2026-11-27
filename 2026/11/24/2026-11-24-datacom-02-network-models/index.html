@@ -1,0 +1,759 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>数通02：网络参考模型 | Ghib6</title><meta name="author" content="XBY"><meta name="copyright" content="XBY"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="ffffff"><meta name="description" content="跟着一次网页请求，理解 OSI 七层、TCP&#x2F;IP 模型与封装解封装，再按拓扑用 Wireshark 观察端口、IP、MAC 和协议。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="数通02：网络参考模型">
+<meta property="og:url" content="https://www.ghib6.com/2026/11/24/2026-11-24-datacom-02-network-models/index.html">
+<meta property="og:site_name" content="Ghib6">
+<meta property="og:description" content="跟着一次网页请求，理解 OSI 七层、TCP&#x2F;IP 模型与封装解封装，再按拓扑用 Wireshark 观察端口、IP、MAC 和协议。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://picbed.ghib6.com/img/posts/2026-11-24-datacom-02-network-models-models-generated.png">
+<meta property="article:published_time" content="2026-11-24T15:55:00.000Z">
+<meta property="article:modified_time" content="2026-11-25T16:25:06.000Z">
+<meta property="article:author" content="XBY">
+<meta property="article:tag" content="OSI">
+<meta property="article:tag" content="TCP&#x2F;IP">
+<meta property="article:tag" content="Wireshark">
+<meta property="article:tag" content="数据封装">
+<meta property="article:tag" content="网络参考模型">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://picbed.ghib6.com/img/posts/2026-11-24-datacom-02-network-models-models-generated.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "数通02：网络参考模型",
+  "url": "https://www.ghib6.com/2026/11/24/2026-11-24-datacom-02-network-models/",
+  "image": "https://picbed.ghib6.com/img/posts/2026-11-24-datacom-02-network-models-models-generated.png",
+  "datePublished": "2026-11-24T15:55:00.000Z",
+  "dateModified": "2026-11-25T16:25:06.000Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "XBY",
+      "url": "https://www.ghib6.com"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/moon.jpg"><link rel="canonical" href="https://www.ghib6.com/2026/11/24/2026-11-24-datacom-02-network-models/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.css" media="print" onload="this.media='all'"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!true && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', 'ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          const hour = new Date().getHours()
+          const isNight = hour <= 6 || hour >= 18
+          if (theme === undefined) isNight ? activateDarkMode() : activateLightMode()
+          else theme === 'light' ? activateLightMode() : activateDarkMode()
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":true,"top_n_per_article":1,"unescape":false,"pagination":{"enable":true,"hitsPerPage":8},"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: {"defaultEncoding":2,"translateDelay":0,"msgToTraditionalChinese":"繁","msgToSimplifiedChinese":"简"},
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: true,
+    post: true
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: {"chs_to_cht":"已切换为繁体中文","cht_to_chs":"已切换为简体中文","day_to_night":"已切换为深色模式","night_to_day":"已切换为浅色模式","bgLight":"#49b1f5","bgDark":"#1f1f1f","position":"top-right"},
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: true,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '数通02：网络参考模型',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="stylesheet" href="/css/custom.css" media="defer" onload="this.media='all'"><link rel="stylesheet" href="/css/custom.css"><link rel="stylesheet" href="/css/universe.css"><link rel="stylesheet" href="/css/progress_bar.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end start --><link rel="stylesheet" href="/css/pet-assistant.css?v=20261127-stream"><link rel="stylesheet" href="https://cdn.cbd.int/hexo-butterfly-clock-anzhiyu/lib/clock.min.css" /><link rel="stylesheet" href="/css/footer-runtime.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/animate.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-butterfly-tag-plugins-plus@latest/lib/assets/font-awesome-animation.min.css" media="defer" onload="this.media='all'"><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-butterfly-tag-plugins-plus@latest/lib/tag_plugins.css" media="defer" onload="this.media='all'"><script src="https://npm.elemecdn.com/hexo-butterfly-tag-plugins-plus@latest/lib/assets/carousel-touch.js"></script><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-filter-gitcalendar/lib/gitcalendar.css" media="print" onload="this.media='all'"><!-- hexo injector head_end end --><meta name="generator" content="Hexo 8.0.0"></head><body><div id="web_bg" style="background-image: url(https://picbed.ghib6.com/img/15.jpg);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/touxiang.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">29</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">89</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">7</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fa fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fa fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fa fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fa fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><span class="site-page group hide"><i class="fa-fw fa fa-list"></i><span> 列表</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fa fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fa fa-video"></i><span> 电影</span></a></li><li><a class="site-page child" target="_blank" rel="noopener" href="https://graph.ghib6.com/"><i class="fa-fw fa fa-project-diagram"></i><span> 思维导图</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/comments/"><i class="fa-fw fa fa-envelope-open"></i><span> 留言板</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fa fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(https://picbed.ghib6.com/img/posts/2026-11-24-datacom-02-network-models-models-generated.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Ghib6</span></a><a class="nav-page-title" href="/"><span class="site-name">数通02：网络参考模型</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fa fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fa fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fa fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fa fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><span class="site-page group hide"><i class="fa-fw fa fa-list"></i><span> 列表</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fa fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fa fa-video"></i><span> 电影</span></a></li><li><a class="site-page child" target="_blank" rel="noopener" href="https://graph.ghib6.com/"><i class="fa-fw fa fa-project-diagram"></i><span> 思维导图</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/comments/"><i class="fa-fw fa fa-envelope-open"></i><span> 留言板</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fa fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">数通02：网络参考模型</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-11-24T15:55:00.000Z" title="发表于 2026-11-24 15:55:00">2026-11-24</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-11-25T16:25:06.000Z" title="更新于 2026-11-25 16:25:06">2026-11-25</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%95%B0%E9%80%9A%E5%9F%BA%E7%A1%80/">数通基础</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">5.3k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>16分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span><span class="post-meta-separator">|</span><span class="post-meta-commentcount"><i class="far fa-comments fa-fw post-meta-icon"></i><span class="post-meta-label">评论数:</span><a href="/2026/11/24/2026-11-24-datacom-02-network-models/#post-comment"><span id="twikoo-count"><i class="fa-solid fa-spinner fa-spin"></i></span></a></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-11-25 16:25:06&quot;}" hidden></div><p>接着<a href="/2026/11/24/2026-11-24-datacom-01-network/">上一篇的办公室情景</a>：电脑接入网络后，你打开浏览器，准备下载一份文件。</p>
+<p>你看到的是网页和下载按钮，电脑要做的事却不止这些。浏览器要说明想要哪个文件，操作系统要把数据交给正确的连接，路由器要找下一跳，网卡还要把比特变成能在线路上传送的信号。</p>
+<p>这些工作怎样配合？**网络参考模型就是把通信拆成几层，让我们知道每一层负责什么。**学它不是为了只背七个名字，而是为了看懂一次访问，以及出问题时先查哪一部分。</p>
+<div class="note info simple"><p>说明：本文用 HTTP &#x2F; TCP &#x2F; IPv4 &#x2F; Ethernet 串起过程。实际网页还可能使用 DNS、TLS 或基于 QUIC 的 HTTP&#x2F;3，不能把这个例子套到所有访问上。后面的抓包是自行搭建的实验步骤和预期，还没有在真机上实测。</p>
+</div>
+
+<span id="more"></span>
+
+<h2 id="信息传递过程"><a href="#信息传递过程" class="headerlink" title="信息传递过程"></a>信息传递过程</h2><h3 id="信息怎样变成数据"><a href="#信息怎样变成数据" class="headerlink" title="信息怎样变成数据"></a>信息怎样变成数据</h3><p>我们想传的是文字、图片、声音。应用会先按照约定，把这些内容变成计算机能保存和处理的数据。例如一段文字需要编码，一张图片有自己的文件格式；接收方也得按相同规则，才能把数据还原成有意义的内容。</p>
+<p>所以，“把信息变成数据”并不是网线独自完成的。应用负责组织内容，协议栈逐步加入传输所需的信息，物理接口最后通过信号把比特送出去。接收端再按规则处理收到的数据，交给应用显示。</p>
+<h3 id="为什么要分层"><a href="#为什么要分层" class="headerlink" title="为什么要分层"></a>为什么要分层</h3><p>假设浏览器既要处理网页，又要决定每种网卡的信号怎样发送，那么换一块网卡，就可能牵动整个应用。分层把这些工作拆开：上层使用下层提供的能力，下层不必理解文件里写了什么。</p>
+<p>以下载文件为例，应用关心请求和响应，传输层关心端到端的数据传送，网络层关心去往哪个网络，链路层关心当前这一段交给谁，物理层则负责比特传输。</p>
+<p>**同层按协议约定通信，相邻层在本机里配合。**图上常画“客户端应用层对服务器应用层”，那是逻辑上的对应关系；数据真正离开电脑时，仍然要先沿着协议栈向下走，再经网络到达对方。</p>
+<h3 id="常见模型放在一起看"><a href="#常见模型放在一起看" class="headerlink" title="常见模型放在一起看"></a>常见模型放在一起看</h3><p>常见的有 OSI 七层、TCP&#x2F;IP 四层，以及学习中常用的五层表示法。图 1 展示了大致对应关系。</p>
+<p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-24-datacom-02-network-models-models-generated.png" alt="OSI七层与TCP&#x2F;IP四层五层模型并排对照，展示高层合并与链路物理层拆分"></p>
+<p style="text-align: center;"><small>图 1 三种网络参考模型</small></p>
+
+<p>层数不同，不是三套网络各干各的，而是观察和划分职责的方式不同。先知道自己用哪种模型，再谈“第几层”，就不会把四层里的网络接口层和五层里的物理层混在一起。</p>
+<h2 id="OSI-七层模型"><a href="#OSI-七层模型" class="headerlink" title="OSI 七层模型"></a>OSI 七层模型</h2><h3 id="七层分别负责什么"><a href="#七层分别负责什么" class="headerlink" title="七层分别负责什么"></a>七层分别负责什么</h3><p>从上往下依次是：<strong>应用、表示、会话、传输、网络、数据链路、物理</strong>。不要只背顺序，还要能举出每层在处理什么。</p>
+<p style="text-align: center;"><small>表 1 OSI 七层的作用</small></p>
+
+<table>
+<thead>
+<tr>
+<th>层次</th>
+<th>主要工作</th>
+<th>放到访问网页里理解</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>应用层</td>
+<td>提供应用使用的网络协议</td>
+<td>HTTP 表达请求哪个资源、返回什么内容</td>
+</tr>
+<tr>
+<td>表示层</td>
+<td>处理编码、格式、压缩和加密等表示问题</td>
+<td>双方需要看懂交换的数据格式</td>
+</tr>
+<tr>
+<td>会话层</td>
+<td>建立、管理和结束会话</td>
+<td>从模型上理解交互怎样组织和维持</td>
+</tr>
+<tr>
+<td>传输层</td>
+<td>为通信端点提供传输服务</td>
+<td>TCP 提供可靠、有序的字节流</td>
+</tr>
+<tr>
+<td>网络层</td>
+<td>逻辑寻址与跨网络转发</td>
+<td>依据 IP 和路由选择下一跳</td>
+</tr>
+<tr>
+<td>数据链路层</td>
+<td>成帧、链路寻址和差错检测等</td>
+<td>把以太网帧交给当前链路上的下一站</td>
+</tr>
+<tr>
+<td>物理层</td>
+<td>通过介质传送比特</td>
+<td>用电、光或无线信号承载比特</td>
+</tr>
+</tbody></table>
+<p>七层是理解职责的框架，不要求每个软件真的有七个独立模块。尤其是上三层，在 TCP&#x2F;IP 应用里往往由应用和相关库一起承担。</p>
+<div class="note info simple"><p>注：应用层不是浏览器窗口本身，而是应用使用的网络协议功能。网站登录状态、TCP 连接与 OSI 会话层也不能直接画等号，要看具体实现承担了哪些工作。</p>
+</div>
+
+<h3 id="传输层一定可靠吗"><a href="#传输层一定可靠吗" class="headerlink" title="传输层一定可靠吗"></a>传输层一定可靠吗</h3><p>**不能把“传输层”直接等同于“可靠传输”。**TCP 提供确认、重传、有序交付等机制；UDP 不提供 TCP 式的可靠字节流保证。应用选了 UDP，又希望可靠传输，就需要相应的上层机制。</p>
+<p>同样，链路层有差错检测，也不代表所有链路协议都会自动重传并保证最终送达。看模型时先记职责，再看具体协议提供了什么服务。</p>
+<h2 id="TCP-IP-模型"><a href="#TCP-IP-模型" class="headerlink" title="TCP&#x2F;IP 模型"></a>TCP&#x2F;IP 模型</h2><h3 id="四层怎样划分"><a href="#四层怎样划分" class="headerlink" title="四层怎样划分"></a>四层怎样划分</h3><p>TCP&#x2F;IP 四层从上到下是：<strong>应用层、传输层、网际层、网络接口层</strong>。网际层在很多入门说明中也称网络层。</p>
+<p>应用层承接 HTTP、DNS 等应用协议；传输层常见 TCP、UDP；网际层以 IP 为核心，处理跨网络寻址和转发；网络接口层负责通过具体链路收发数据。</p>
+<p><a target="_blank" rel="noopener" href="https://www.rfc-editor.org/rfc/rfc1122">RFC 1122</a>按链路层、IP 层和传输层讨论主机的通信要求，应用层由配套规范讨论。这里把四层作为理解 TCP&#x2F;IP 协议体系的常见框架，不把它说成“实际设备必须恰好分成四块”。</p>
+<h3 id="五层为什么多一层"><a href="#五层为什么多一层" class="headerlink" title="五层为什么多一层"></a>五层为什么多一层</h3><p>五层把底部拆成数据链路层和物理层，顺序变成：<strong>应用、传输、网络、数据链路、物理</strong>。这样既能单独讲以太网帧，也能单独讲接口、网线与信号，更方便学习。</p>
+<p>不是网络多了一次发送，也不是四层模型缺了一块能力，只是把原来放在网络接口层讨论的工作分开看。</p>
+<p style="text-align: center;"><small>表 2 五层职责与常见例子</small></p>
+
+<table>
+<thead>
+<tr>
+<th>层次</th>
+<th>主要问题</th>
+<th>常见例子</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>应用层</td>
+<td>要提供什么业务、数据怎样表达</td>
+<td>HTTP、DNS、DHCP、SMTP</td>
+</tr>
+<tr>
+<td>传输层</td>
+<td>两端的数据交给哪个通信端点</td>
+<td>TCP、UDP、端口</td>
+</tr>
+<tr>
+<td>网络层</td>
+<td>目的地在哪个网络、下一跳是谁</td>
+<td>IP、ICMP、路由</td>
+</tr>
+<tr>
+<td>数据链路层</td>
+<td>当前链路怎样交付一帧</td>
+<td>Ethernet、PPP、MAC 地址</td>
+</tr>
+<tr>
+<td>物理层</td>
+<td>比特怎样通过介质传递</td>
+<td>接口、线缆、电光信号</td>
+</tr>
+</tbody></table>
+<h3 id="端口、IP-和-MAC-为什么都需要"><a href="#端口、IP-和-MAC-为什么都需要" class="headerlink" title="端口、IP 和 MAC 为什么都需要"></a>端口、IP 和 MAC 为什么都需要</h3><p>这三个标识不是重复填写的“地址”。端口帮助区分传输端点，IP 用来进行网络层寻址，MAC 用于以太网当前链路上的交付。</p>
+<p>例如电脑访问另一个网段的服务器：目的 IP 指向服务器，目的 TCP 端口指向服务器上的服务，而首跳帧的目的 MAC 指向网关接口。电脑先把帧交给网关，不是直接把一份以太网帧扔到远端服务器。</p>
+<h2 id="数据封装和解封装"><a href="#数据封装和解封装" class="headerlink" title="数据封装和解封装"></a>数据封装和解封装</h2><h3 id="发送端怎样逐层封装"><a href="#发送端怎样逐层封装" class="headerlink" title="发送端怎样逐层封装"></a>发送端怎样逐层封装</h3><p>假设电脑已经知道服务器的 IPv4 地址，这次访问使用 TCP。图 2 把发送端的处理从上到下排开，也标出了接收端相反的处理方向。</p>
+<p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-24-datacom-02-network-models-encapsulation-generated.png" alt="HTTP数据逐层加入TCP头IP头Ethernet头和FCS，最终通过比特信号发送，接收端向上处理"></p>
+<p style="text-align: center;"><small>图 2 封装与解封装的方向</small></p>
+
+<div class="timeline "><div class='timeline-item headline'>
+        <div class='timeline-item-title'>
+          <div class='item-circle'><p>一份请求怎样离开电脑</p>
+</div>
+        </div>
+      </div><div class='timeline-item'>
+        <div class='timeline-item-title'>
+          <div class='item-circle'><p>应用层：准备请求</p>
+</div>
+        </div>
+        <div class='timeline-item-content'><p>HTTP 写清要访问哪个资源。应用数据本身也有格式，并不是到了下面才第一次被组织。</p>
+</div>
+      </div><div class='timeline-item'>
+        <div class='timeline-item-title'>
+          <div class='item-circle'><p>传输层：加入 TCP 头</p>
+</div>
+        </div>
+        <div class='timeline-item-content'><p>TCP 把字节流组织为报文段，加入源端口、目的端口、序列号等信息。TCP 不保留应用消息边界，一条 HTTP 消息可以分布在多个 TCP 段中。</p>
+</div>
+      </div><div class='timeline-item'>
+        <div class='timeline-item-title'>
+          <div class='item-circle'><p>网络层：加入 IP 头</p>
+</div>
+        </div>
+        <div class='timeline-item-content'><p>IP 包携带源、目的 IP 等信息，TCP 段成为它的载荷。网络层据此处理寻址与转发。</p>
+</div>
+      </div><div class='timeline-item'>
+        <div class='timeline-item-title'>
+          <div class='item-circle'><p>数据链路层：组织当前链路的帧</p>
+</div>
+        </div>
+        <div class='timeline-item-content'><p>以太网加入相应头部和 FCS 等信息，目的 MAC 对应这段链路上的接收方。访问远端网段时，电脑先交给网关。</p>
+</div>
+      </div><div class='timeline-item'>
+        <div class='timeline-item-title'>
+          <div class='item-circle'><p>物理层：发出信号</p>
+</div>
+        </div>
+        <div class='timeline-item-content'><p>网卡通过介质传送比特。物理层不是再给数据套一个“物理层头”。</p>
+</div>
+      </div></div>
+
+<p>“载荷”可以理解为这一层承载的内容。TCP 头和应用数据放在一起，是 IP 层的载荷；IP 头和它的内容，又一起放进以太网帧。<strong>同一段内容，换一层看，角色也跟着变。</strong></p>
+<div class="note info simple"><p>注：图中块的宽度不代表实际字段长度，也不表示一条应用消息总能放进一个帧。这里用 TCP 举例；使用 UDP 时应叫 UDP 数据报，不能把所有传输层数据都叫 TCP 段。</p>
+</div>
+
+<h3 id="交换机和路由器做什么"><a href="#交换机和路由器做什么" class="headerlink" title="交换机和路由器做什么"></a>交换机和路由器做什么</h3><p>数据经过中间设备，不等于每台设备都把文件交给自己的应用打开一次。</p>
+<p style="text-align: center;"><small>表 3 普通转发路径中的设备分工</small></p>
+
+<table>
+<thead>
+<tr>
+<th>设备</th>
+<th>在这条路径中主要做什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>普通二层交换机</td>
+<td>根据 VLAN、目的 MAC 等二层信息转发帧</td>
+</tr>
+<tr>
+<td>路由器</td>
+<td>处理入站链路封装，检查 IP 包，选下一跳，再按出站链路重新封装</td>
+</tr>
+<tr>
+<td>目标主机</td>
+<td>沿协议栈向上处理，将数据交给对应的应用</td>
+</tr>
+</tbody></table>
+<p>在普通 IPv4 路由转发中，路由器会递减 TTL，并更新 IPv4 首部校验和；没有 NAT、隧道等额外处理时，源、目的 IP 通常保持不变。当前链路的 MAC 与封装则会随下一段连接重新构建。</p>
+<p>**IP 指向最终目的地，链路帧负责这一段交给谁。**所以经过路由器后，不能期待两边抓到完全相同的以太网头。</p>
+<h3 id="接收端怎样解封装"><a href="#接收端怎样解封装" class="headerlink" title="接收端怎样解封装"></a>接收端怎样解封装</h3><p>服务器收到发给自己的帧，先检查相应链路信息，再把 IP 包交给网络层处理。接着由 TCP 等协议处理传输信息，把数据交给监听相应端口的应用。</p>
+<p>这里不只是“每层撕一张纸”。TCP 还要处理顺序、重传和重组，应用还要解释自己的消息格式。只有相关处理完成，浏览器才能显示文件或页面。</p>
+<h2 id="Wireshark"><a href="#Wireshark" class="headerlink" title="Wireshark"></a>Wireshark</h2><h3 id="先看抓包实验拓扑"><a href="#先看抓包实验拓扑" class="headerlink" title="先看抓包实验拓扑"></a>先看抓包实验拓扑</h3><p>图 3 是一组可自行搭建的测试网络。客户端 PC1 经过二层交换机和路由器 R1，访问服务器的 HTTP 服务。只在自己的隔离实验里使用这些示例地址，不去修改正在使用的办公网配置。</p>
+<p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-24-datacom-02-network-models-capture-topology-generated.png" alt="PC1通过SW1和R1访问另一网段的HTTP服务器，标注两端IP网关路由器接口和抓包位置"></p>
+<p style="text-align: center;"><small>图 3 网页请求与抓包实验拓扑</small></p>
+
+<p style="text-align: center;"><small>表 4 实验地址与服务</small></p>
+
+<table>
+<thead>
+<tr>
+<th>位置</th>
+<th>地址或连接</th>
+<th>需要确认</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PC1</td>
+<td>192.0.2.10&#x2F;24；网关192.0.2.1</td>
+<td>网关与本机在同一子网</td>
+</tr>
+<tr>
+<td>SW1</td>
+<td>GE0&#x2F;0&#x2F;1接PC1；GE0&#x2F;0&#x2F;2接R1</td>
+<td>两个接入口属于同一 VLAN，允许转发</td>
+</tr>
+<tr>
+<td>R1 左接口</td>
+<td>GE0&#x2F;0&#x2F;0：192.0.2.1&#x2F;24</td>
+<td>接SW1；接口启用，具备两侧直连路由</td>
+</tr>
+<tr>
+<td>R1 右接口</td>
+<td>GE0&#x2F;0&#x2F;1：198.51.100.1&#x2F;24</td>
+<td>接服务器；不启用NAT</td>
+</tr>
+<tr>
+<td>Server</td>
+<td>198.51.100.20&#x2F;24；网关198.51.100.1</td>
+<td>自己的HTTP测试服务监听TCP8000，允许测试请求</td>
+</tr>
+</tbody></table>
+<p>这个例子只经过一个路由器，两侧是它的直连网络，不需要再凭空加一条去互联网的默认路由。先确认网关、接口和服务可用，再抓一次明确的请求，便于对照。</p>
+<h3 id="抓一次请求，再分层展开"><a href="#抓一次请求，再分层展开" class="headerlink" title="抓一次请求，再分层展开"></a>抓一次请求，再分层展开</h3><ol>
+<li>在客户端网卡开启 Wireshark，对应图中的抓包点 A；有条件时也在服务器网卡开启抓包点 B。</li>
+<li>访问自己的测试地址 <code>http://198.51.100.20:8000/</code>，或请求该服务上一张不含敏感内容的测试图片。</li>
+<li>停止捕获，先按客户端 IP 或 TCP8000 找到这次连接，再挑选带有应用数据的报文展开。</li>
+<li>依次观察 Ethernet、IPv4、TCP、HTTP，记录源与目的 MAC、IP、端口和请求内容。如果 TCP8000 的明文 HTTP 未被自动识别，可通过 Analyze → Decode As 把该会话交给 HTTP 解析器；这只是指定解析方式，不会解密加密流量。</li>
+<li>若两侧都有抓包，比较跨路由转发前后的 IP、TTL、链路地址。比较时匹配同方向、同一连接的对应报文，不随意挑两条记录。</li>
+</ol>
+<p>客户端的源端口通常由操作系统选择，不要事先把它写死成80或8000；服务器监听端口在这个实验里才是8000。回复时两端的源、目的端口会交换方向。</p>
+<div class="note info simple"><p>注：在客户端网卡抓包，通常看不到路由器另一侧的链路帧。图中的两个观察点是为了比较不同链路，不代表单台电脑能自动看见交换机所有端口。网卡卸载也可能影响校验和和分段的显示，应结合观察位置解释。</p>
+</div>
+
+<h3 id="按-IP、MAC、端口和协议筛选"><a href="#按-IP、MAC、端口和协议筛选" class="headerlink" title="按 IP、MAC、端口和协议筛选"></a>按 IP、MAC、端口和协议筛选</h3><p>下面都填在顶部的<strong>显示过滤器</strong>里，用于筛选已经捕获的数据。示例 MAC 要替换成实际网卡地址，不要把它当成图中设备必然具有的地址。</p>
+<div class="tabs"><div class="nav-tabs"><button type="button" class="tab active">IP</button><button type="button" class="tab">MAC</button><button type="button" class="tab">端口</button><button type="button" class="tab">协议与组合</button></div><div class="tab-contents"><div class="tab-item-content active"><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ip.addr == 192.0.2.10</span><br><span class="line">ip.src == 192.0.2.10</span><br><span class="line">ip.dst == 198.51.100.20</span><br></pre></td></tr></table></figure>
+
+<p><code>ip.addr</code> 匹配源或目的地址，适合看双向通信；<code>ip.src</code> 和 <code>ip.dst</code> 则分别限制方向。只看去程时，可以同时指定源和目的。</p></div><div class="tab-item-content"><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">eth.addr == 02:00:00:00:00:01</span><br><span class="line">eth.src == 02:00:00:00:00:01</span><br></pre></td></tr></table></figure>
+
+<p>第一条匹配以太网源或目的 MAC，第二条只匹配源 MAC。MAC 的判断要配合抓包点：服务器一侧看到的帧，不会沿用客户端发给首跳网关的全部链路地址。</p></div><div class="tab-item-content"><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">tcp.port == 8000</span><br><span class="line">tcp.port == 443</span><br><span class="line">udp.port == 443</span><br></pre></td></tr></table></figure>
+
+<p>三条是独立条件。8000用于本次测试；443的例子分别找TCP或UDP上的对应端口。端口号是线索，不能只凭443就断言当前报文一定是什么应用。</p></div><div class="tab-item-content"><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">http</span><br><span class="line">dns</span><br><span class="line">arp</span><br><span class="line">ip.addr == 192.0.2.10 and tcp.port == 8000</span><br><span class="line">ip.src == 192.0.2.10 and ip.dst == 198.51.100.20</span><br><span class="line">not (ip.addr == 192.0.2.10)</span><br></pre></td></tr></table></figure>
+
+<p><code>http</code>、<code>dns</code>、<code>arp</code> 找被解析为对应协议的记录；<code>and</code> 组合条件。最后一条排除源或目的为该IP的记录，括号让要排除的范围更清楚。</p></div></div><div class="tab-to-top"><button type="button" aria-label="scroll to top"><i class="fas fa-arrow-up"></i></button></div></div>
+
+<p>这些字段和语法可对照 <a target="_blank" rel="noopener" href="https://www.wireshark.org/docs/man-pages/wireshark-filter.html">Wireshark 显示过滤器说明</a>。显示过滤只改变当前看哪些包，不会把其他已经抓到的记录从文件里删掉。</p>
+<h3 id="显示过滤与捕获过滤别混用"><a href="#显示过滤与捕获过滤别混用" class="headerlink" title="显示过滤与捕获过滤别混用"></a>显示过滤与捕获过滤别混用</h3><p>显示过滤是在抓到数据后筛选，捕获过滤则在捕获时决定留下哪些流量，两者语法不同。例如显示过滤写 <code>ip.addr == 192.0.2.10</code>，捕获过滤通常用 <code>host 192.0.2.10</code> 这样的表达。不要把前一条原样填进捕获过滤框。</p>
+<p>第一次练习可以先用显示过滤。过早把捕获条件设得太窄，可能连排查所需的 ARP、DNS 或回程流量都没留住，后面就无从对照。</p>
+<h3 id="图片数据怎样观察"><a href="#图片数据怎样观察" class="headerlink" title="图片数据怎样观察"></a>图片数据怎样观察</h3><p>用自己的测试图片发送请求，再看 HTTP 响应的类型和内容，比随机抓一段流量更容易理解“应用内容被拆成报文传输”。图片通常跨多个 TCP 段，不能指望随便点开一个包就看到整张图。</p>
+<p>对于捕获完整、能被正确解析的 HTTP 对象，可尝试 Wireshark 的 HTTP 对象导出功能。协议和对象导出说明可查 <a target="_blank" rel="noopener" href="https://www.wireshark.org/docs/wsug_html/">Wireshark 用户指南</a>。这属于解析、重组后的结果，不是额外增加了一层网络协议。</p>
+<details class="folding-tag" cyan><summary> 抓到了聊天软件发图片的流量，就能直接导出原图吗？ </summary>
+              <div class='content'>
+              <p>**不能仅凭抓到了流量就保证还原图片。**还要看实际传输协议、是否加密、捕获是否完整，以及解析器能否识别和重组对象。加密内容没有相应解密条件时，看到包长、地址和时间，也不等于看到了图片明文。</p><p>如果用 QQ 等聊天软件做自己的图片传输练习，可以先记录时间、地址、连接与流量变化；无法导出图片时，不能直接判断发送失败。刚开始学习，先用可控的明文 HTTP 测试服务把封装与重组看清，再研究具体应用协议。</p>
+              </div>
+            </details>
+
+<h2 id="重点回顾"><a href="#重点回顾" class="headerlink" title="重点回顾"></a>重点回顾</h2><h3 id="把一次访问串起来"><a href="#把一次访问串起来" class="headerlink" title="把一次访问串起来"></a>把一次访问串起来</h3><p>先记住这条线：应用准备请求，传输层处理端到端传送，网络层处理寻址和转发，链路层组织当前链路的帧，物理层传送比特。接收端按相反方向逐层处理，最后把数据交给应用。</p>
+<p>再分清三组概念：四层和五层是不同划分；端口、IP、MAC 解决不同范围的问题；抓到数据包与看懂应用内容也不是一回事。把这些区别放回刚才的拓扑，比单背层名更容易记住。</p>
+<h3 id="面试问题"><a href="#面试问题" class="headerlink" title="面试问题"></a>面试问题</h3><details class="folding-tag" cyan><summary> 网络通信常参考哪些模型，分别有几层？ </summary>
+              <div class='content'>
+              <p>**常见有 OSI 七层、TCP&#x2F;IP 四层，以及学习中常用的 TCP&#x2F;IP 五层表示法。**OSI从上到下是应用、表示、会话、传输、网络、数据链路、物理；TCP&#x2F;IP四层是应用、传输、网际、网络接口；五层再把底部拆成数据链路与物理。</p><p>回答“网络有几层”之前先说模型。否则一个人说物理层是第一层，另一个人用四层框架讨论网络接口层，听起来就像在互相纠错。</p>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> TCP/IP 分几层，每层做什么？ </summary>
+              <div class='content'>
+              <p>**按四层说，应用层处理应用协议，传输层提供通信端点间的传输服务，网际层负责 IP 寻址与转发，网络接口层负责通过具体链路收发。**按五层说，再把底部拆成成帧与链路交付、比特传输两部分。</p><p>例如HTTP、TCP、IPv4、Ethernet与物理信号，分别帮助解释五层职责。但传输层不只TCP，也不能说所有传输层协议都保证可靠。</p>
+              </div>
+            </details>
+
+<details class="folding-tag" green><summary> 数据怎样封装和解封装？ </summary>
+              <div class='content'>
+              <p>**发送端向下处理，在相应层加入本层信息；接收端向上处理，再把载荷交给上一层。**本例先组织HTTP数据，再加入TCP头、IP头和以太网封装，最终以信号发送。服务器收到后逐层检查，TCP处理重组与有序交付，应用再解释HTTP内容。</p><p>中间路由器不需要把文件交给自己的HTTP应用打开。它处理网络层和两侧链路封装；普通二层交换机则主要按二层信息转发。</p>
+              </div>
+            </details>
+
+<details class="folding-tag" cyan><summary> Wireshark 怎样过滤 MAC、IP、端口和协议？ </summary>
+              <div class='content'>
+              <p>**显示过滤可用 <code>eth.addr == 地址</code>、<code>ip.addr == 地址</code>、<code>tcp.port == 端口</code>，以及 <code>http</code>、<code>dns</code> 等协议名。**要限定方向，就选 <code>eth.src</code>、<code>ip.dst</code> 等方向字段；要同时满足条件，用 <code>and</code>，任一满足用 <code>or</code>，排除用 <code>not (...)</code>。</p><p>例如本次实验看客户端的TCP8000通信，可写 <code>ip.addr == 192.0.2.10 and tcp.port == 8000</code>。这些是显示过滤表达式，不是发到设备上的配置命令，也不能原样充当捕获过滤器。</p>
+              </div>
+            </details>
+
+<h3 id="其他常见问题"><a href="#其他常见问题" class="headerlink" title="其他常见问题"></a>其他常见问题</h3><details class="folding-tag" blue><summary> 跨网段访问时，第一帧的目的 MAC 是服务器的吗？ </summary>
+              <div class='content'>
+              <p>**在图3的以太网实验里，不是，是所选网关接口的 MAC。**目的IP仍是服务器 <code>198.51.100.20</code>，但电脑先把帧交给 <code>192.0.2.1</code> 对应的网关。R1再为通向服务器的那段链路重新封装。</p>
+              </div>
+            </details>
+
+<details class="folding-tag" green><summary> 二层交换机就绝对不会处理三层信息吗？ </summary>
+              <div class='content'>
+              <p>**不能用“二层”把设备的全部能力锁死。**这里描述的是普通二层转发路径，实际设备还可能支持三层交换、访问控制或管理IP。分析某份报文时，要看当前启用的功能和它走的路径，不只看设备名称。</p>
+              </div>
+            </details>
+
+<details class="folding-tag" cyan><summary> HTTPS 抓包为什么看不到明文 HTTP？ </summary>
+              <div class='content'>
+              <p>**因为应用数据受加密保护，抓到TLS等流量不等于已经解密。**没有相应解密条件时，<code>http</code> 过滤为空也不能说明没有发生网页访问。先确认实际使用TCP还是QUIC等传输路径，再看捕获位置与解密条件。</p>
+              </div>
+            </details>
+
+<h3 id="学习检查"><a href="#学习检查" class="headerlink" title="学习检查"></a>学习检查</h3><div class='checkbox green checked'><input type="checkbox" checked="checked"/>
+            <p>能说清 OSI 七层与 TCP&#x2F;IP 四层、五层的关系。</p>
+            </div>
+<div class='checkbox green checked'><input type="checkbox" checked="checked"/>
+            <p>能沿拓扑解释端口、IP与当前链路MAC各自负责什么。</p>
+            </div>
+<div class='checkbox green checked'><input type="checkbox" checked="checked"/>
+            <p>能区分发送封装、中间转发与接收解封装。</p>
+            </div>
+<div class='checkbox green checked'><input type="checkbox" checked="checked"/>
+            <p>能使用IP、MAC、端口和协议显示过滤，不与捕获过滤混用。</p>
+            </div>
+
+<p>接下来到<a href="/2026/11/24/2026-11-24-datacom-03-physical-layer/">第3篇：物理层</a>，把最底下的比特传输落到网线、光纤、接口和协商上。</p>
+<span hidden data-post-admin-edit="/admin/#/collections/posts/entries/2026-11-24-datacom-02-network-models"></span></article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://www.ghib6.com">XBY</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://www.ghib6.com/2026/11/24/2026-11-24-datacom-02-network-models/">https://www.ghib6.com/2026/11/24/2026-11-24-datacom-02-network-models/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://www.ghib6.com" target="_blank">Ghib6</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Wireshark/">Wireshark</a><a class="post-meta__tags" href="/tags/OSI/">OSI</a><a class="post-meta__tags" href="/tags/TCP-IP/">TCP/IP</a><a class="post-meta__tags" href="/tags/%E7%BD%91%E7%BB%9C%E5%8F%82%E8%80%83%E6%A8%A1%E5%9E%8B/">网络参考模型</a><a class="post-meta__tags" href="/tags/%E6%95%B0%E6%8D%AE%E5%B0%81%E8%A3%85/">数据封装</a></div><div class="post-share"><div class="social-share" data-image="https://picbed.ghib6.com/img/posts/2026-11-24-datacom-02-network-models-models-generated.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/11/24/2026-11-24-datacom-03-physical-layer/" title="数通03：物理层"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-24-datacom-03-physical-layer-physical-path-generated.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">数通03：物理层</div></div><div class="info-2"><div class="info-item-1">还是那间办公室。你把电脑接到墙上的网络面板，却发现系统显示“网络电缆被拔出”。同事的电脑插在旁边就能用，自己的网线看起来也没有断，问题到底在哪？ 先别急着修改 IP。网络面板只是整段连接的一环，墙内线缆、配线架、交换机端口、网卡状态都可能影响链路建立。物理层首先要解决的问题，是让比特能够通过介质在设备之间传递。 上一篇介绍了网络分层。这次从最底下一层看起：数据到底靠什么传过去，插好线之后，两端又怎样确定工作速率。 说明：本文的办公室故障是教学情景，命令与排查步骤是操作示例，不代表已在真实设备上完成实验或取得测量结果。     物理层及介质物理层不只是网线。网线、光纤和无线信号负责承载信息，物理层则规定设备怎样用它们传送比特。换一种介质，信号和接口可以变，上层仍然要拿到可处理的数据，如图 1。  图 1 常见物理连接路径  图里的三种连接用的信号不同，目的相同：让两端收发比特。不过，链路能建立只是第一步，后面还得检查地址、VLAN 和具体服务。 四类特性如何理解看接口时，可以依次问四件事：插头怎么接、信号有什么要求、各个部分负责什么、通信按什么顺序进行。它们对应表 1 中的四类特性...</div></div></div></a><a class="pagination-related" href="/2026/11/24/2026-11-24-datacom-01-network/" title="数通01：数据通信网络"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-24-datacom-01-network-office-generated.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">数通01：数据通信网络</div></div><div class="info-2"><div class="info-item-1">刚到一家新公司，同事指着桌上的电脑说：“接上网络，下载共享资料，再把入职表打印出来。” 下载和打印看起来是两件小事，却已经用到了网络最基本的能力：**让设备交换数据、共享资源。**电脑、打印机、交换机和网线各自负责什么？访问办公室的打印机，与访问远处的服务器，路径又有什么区别？ 先把这些对象和连接看清楚，后面再学地址、协议和配置，就更容易知道自己在解决哪个问题。 说明：文中的办公室和访问路径是讲解情景，配图用于认识设备角色与连接关系。这里不安排配置实验，图中也不代表一套已经实测的网络。     数据通信网络基础概述网络并不只等于“能打开网页”。办公室里的电脑可以通过网络打印文件，服务器可以提供共享资料，两台电脑也可以直接交换数据。访问互联网只是网络的一种用途。 学习这一部分，先回答三个问题：哪些设备在通信，它们通过什么相连，要把数据送到哪里。遇到故障时，也可以沿着这三个问题把范围逐步缩小。 网络：节点与链路**网络由节点，以及连接节点的链路构成。**放到计算机网络里，电脑、服务器、交换机、路由器都可以作为节点；节点之间承载通信的连接，就是链路。 拿办公室举例：电脑通过网线连接交换...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2026/05/07/2026-05-07-%E5%AE%9E%E9%AA%8C%E4%B8%80%EF%BC%9A%E6%95%B0%E6%8D%AE%E9%80%9A%E4%BF%A1%E5%AE%9E%E9%AA%8C%EF%BC%88esp8266-mqtt%EF%BC%89/" title="实验一：数据通信实验（ESP8266 + MQTT）"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/%E5%AE%9E%E9%AA%8C%E4%B8%80%E5%B0%81%E9%9D%A2.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-05-07</div><div class="info-item-2">实验一：数据通信实验（ESP8266 + MQTT）</div></div><div class="info-2"><div class="info-item-1">一、实验目的本次实验的主要目标如下：  利用 AT 指令完成 Wi-Fi 连接配置，并基于 TCP 进行数据传输，理解 Wi-Fi 通信的基本过程； 利用 AT 指令完成 MQTT 通信配置，理解 MQTT 协议的发布&#x2F;订阅机制； 学会使用 Wireshark 抓取并分析 MQTT 通信过程中的数据包。  二、实验内容本次实验主要完成以下内容：  使用 ESP8266 模块连接 Wi-Fi； 通过 AT 指令配置 ESP8266 与 MQTT 服务器建立连接； 通过 MQTT 协议实现消息的发布和订阅； 使用 Wireshark 对 MQTT 数据包进行抓包与分析。  三、实验原理1. MQTT 协议MQTT（Message Queuing Telemetry Transport，消息队列遥测传输协议）是一种基于发布&#x2F;订阅模式的轻量级通信协议。该协议构建在 TCP&#x2F;IP 协议之上，具有低开销、低带宽占用的特点，因此常用于物联网、小型设备和移动应用等场景。 MQTT 的数据传输方式如下图所示：  在 MQTT 通信中，设备不直接面向点对点发送数据，而是...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/touxiang.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">XBY</div><div class="author-info-description">这是一个未完成的博客</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">29</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">89</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">7</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/Ghib6"><i class="fab fa-github"></i><span>前往妙妙小屋</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/Ghib6" target="_blank" title="Github"><i class="fab fa-github"></i></a><a class="social-icon" href="https://mail.163.com/" target="_blank" title="Email"><i class="fa fa-envelope"></i></a><a class="social-icon" href="https://space.bilibili.com/324065498" target="_blank" title="bilibili"><i class="fab fa-bilibili"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">欢迎来到我的博客！</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BF%A1%E6%81%AF%E4%BC%A0%E9%80%92%E8%BF%87%E7%A8%8B"><span class="toc-number">1.</span> <span class="toc-text">信息传递过程</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BF%A1%E6%81%AF%E6%80%8E%E6%A0%B7%E5%8F%98%E6%88%90%E6%95%B0%E6%8D%AE"><span class="toc-number">1.1.</span> <span class="toc-text">信息怎样变成数据</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E5%88%86%E5%B1%82"><span class="toc-number">1.2.</span> <span class="toc-text">为什么要分层</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B8%B8%E8%A7%81%E6%A8%A1%E5%9E%8B%E6%94%BE%E5%9C%A8%E4%B8%80%E8%B5%B7%E7%9C%8B"><span class="toc-number">1.3.</span> <span class="toc-text">常见模型放在一起看</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#OSI-%E4%B8%83%E5%B1%82%E6%A8%A1%E5%9E%8B"><span class="toc-number">2.</span> <span class="toc-text">OSI 七层模型</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%83%E5%B1%82%E5%88%86%E5%88%AB%E8%B4%9F%E8%B4%A3%E4%BB%80%E4%B9%88"><span class="toc-number">2.1.</span> <span class="toc-text">七层分别负责什么</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BC%A0%E8%BE%93%E5%B1%82%E4%B8%80%E5%AE%9A%E5%8F%AF%E9%9D%A0%E5%90%97"><span class="toc-number">2.2.</span> <span class="toc-text">传输层一定可靠吗</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#TCP-IP-%E6%A8%A1%E5%9E%8B"><span class="toc-number">3.</span> <span class="toc-text">TCP&#x2F;IP 模型</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9B%9B%E5%B1%82%E6%80%8E%E6%A0%B7%E5%88%92%E5%88%86"><span class="toc-number">3.1.</span> <span class="toc-text">四层怎样划分</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BA%94%E5%B1%82%E4%B8%BA%E4%BB%80%E4%B9%88%E5%A4%9A%E4%B8%80%E5%B1%82"><span class="toc-number">3.2.</span> <span class="toc-text">五层为什么多一层</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AB%AF%E5%8F%A3%E3%80%81IP-%E5%92%8C-MAC-%E4%B8%BA%E4%BB%80%E4%B9%88%E9%83%BD%E9%9C%80%E8%A6%81"><span class="toc-number">3.3.</span> <span class="toc-text">端口、IP 和 MAC 为什么都需要</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E5%B0%81%E8%A3%85%E5%92%8C%E8%A7%A3%E5%B0%81%E8%A3%85"><span class="toc-number">4.</span> <span class="toc-text">数据封装和解封装</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8F%91%E9%80%81%E7%AB%AF%E6%80%8E%E6%A0%B7%E9%80%90%E5%B1%82%E5%B0%81%E8%A3%85"><span class="toc-number">4.1.</span> <span class="toc-text">发送端怎样逐层封装</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BA%A4%E6%8D%A2%E6%9C%BA%E5%92%8C%E8%B7%AF%E7%94%B1%E5%99%A8%E5%81%9A%E4%BB%80%E4%B9%88"><span class="toc-number">4.2.</span> <span class="toc-text">交换机和路由器做什么</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8E%A5%E6%94%B6%E7%AB%AF%E6%80%8E%E6%A0%B7%E8%A7%A3%E5%B0%81%E8%A3%85"><span class="toc-number">4.3.</span> <span class="toc-text">接收端怎样解封装</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Wireshark"><span class="toc-number">5.</span> <span class="toc-text">Wireshark</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%88%E7%9C%8B%E6%8A%93%E5%8C%85%E5%AE%9E%E9%AA%8C%E6%8B%93%E6%89%91"><span class="toc-number">5.1.</span> <span class="toc-text">先看抓包实验拓扑</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8A%93%E4%B8%80%E6%AC%A1%E8%AF%B7%E6%B1%82%EF%BC%8C%E5%86%8D%E5%88%86%E5%B1%82%E5%B1%95%E5%BC%80"><span class="toc-number">5.2.</span> <span class="toc-text">抓一次请求，再分层展开</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8C%89-IP%E3%80%81MAC%E3%80%81%E7%AB%AF%E5%8F%A3%E5%92%8C%E5%8D%8F%E8%AE%AE%E7%AD%9B%E9%80%89"><span class="toc-number">5.3.</span> <span class="toc-text">按 IP、MAC、端口和协议筛选</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%98%BE%E7%A4%BA%E8%BF%87%E6%BB%A4%E4%B8%8E%E6%8D%95%E8%8E%B7%E8%BF%87%E6%BB%A4%E5%88%AB%E6%B7%B7%E7%94%A8"><span class="toc-number">5.4.</span> <span class="toc-text">显示过滤与捕获过滤别混用</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9B%BE%E7%89%87%E6%95%B0%E6%8D%AE%E6%80%8E%E6%A0%B7%E8%A7%82%E5%AF%9F"><span class="toc-number">5.5.</span> <span class="toc-text">图片数据怎样观察</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%87%8D%E7%82%B9%E5%9B%9E%E9%A1%BE"><span class="toc-number">6.</span> <span class="toc-text">重点回顾</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8A%8A%E4%B8%80%E6%AC%A1%E8%AE%BF%E9%97%AE%E4%B8%B2%E8%B5%B7%E6%9D%A5"><span class="toc-number">6.1.</span> <span class="toc-text">把一次访问串起来</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%9D%A2%E8%AF%95%E9%97%AE%E9%A2%98"><span class="toc-number">6.2.</span> <span class="toc-text">面试问题</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%B6%E4%BB%96%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98"><span class="toc-number">6.3.</span> <span class="toc-text">其他常见问题</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AD%A6%E4%B9%A0%E6%A3%80%E6%9F%A5"><span class="toc-number">6.4.</span> <span class="toc-text">学习检查</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/11/27/2026-11-27-datacom-09-transport/" title="数通09：传输层"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-27-datacom-09-transport-handshake.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="数通09：传输层"/></a><div class="content"><a class="title" href="/2026/11/27/2026-11-27-datacom-09-transport/" title="数通09：传输层">数通09：传输层</a><time datetime="2026-11-27T13:44:54.000Z" title="发表于 2026-11-27 13:44:54">2026-11-27</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/11/27/2026-11-27-datacom-08-inter-vlan/" title="数通08：VLAN间通信"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-27-datacom-08-inter-vlan-vlanif.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="数通08：VLAN间通信"/></a><div class="content"><a class="title" href="/2026/11/27/2026-11-27-datacom-08-inter-vlan/" title="数通08：VLAN间通信">数通08：VLAN间通信</a><time datetime="2026-11-27T09:18:43.000Z" title="发表于 2026-11-27 09:18:43">2026-11-27</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/11/26/2026-11-26-datacom-07-ip-routing/" title="数通07：IP路由基础"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-26-datacom-07-ip-routing-table.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="数通07：IP路由基础"/></a><div class="content"><a class="title" href="/2026/11/26/2026-11-26-datacom-07-ip-routing/" title="数通07：IP路由基础">数通07：IP路由基础</a><time datetime="2026-11-26T15:08:40.000Z" title="发表于 2026-11-26 15:08:40">2026-11-26</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/11/26/2026-11-26-datacom-06-network-layer/" title="数通06：网络层实验"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-26-datacom-06-network-layer-labs.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="数通06：网络层实验"/></a><div class="content"><a class="title" href="/2026/11/26/2026-11-26-datacom-06-network-layer/" title="数通06：网络层实验">数通06：网络层实验</a><time datetime="2026-11-26T14:40:06.000Z" title="发表于 2026-11-26 14:40:06">2026-11-26</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/11/25/2026-11-25-datacom-05-vlan/" title="数通05：VLAN原理与配置"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-25-datacom-05-vlan-vlan-topology-generated.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="数通05：VLAN原理与配置"/></a><div class="content"><a class="title" href="/2026/11/25/2026-11-25-datacom-05-vlan/" title="数通05：VLAN原理与配置">数通05：VLAN原理与配置</a><time datetime="2026-11-25T08:50:00.000Z" title="发表于 2026-11-25 08:50:00">2026-11-25</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2020 - 2026 By XBY</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="translateLink" type="button" title="简繁转换">繁</button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="/js/tw_cn.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page/instantpage.min.js" type="module"></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js"></script><script src="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (false) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://hexo-twikoo.ghib6.com/',
+      region: '',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://hexo-twikoo.ghib6.com/',
+      region: '',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    GLOBAL_CONFIG_SITE.pageType === 'post' && getCount()
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script defer src="/js/light.js"></script><canvas id="universe"></canvas><script defer src="/js/universe.js"></script><script defer src="/js/cursor.js"></script><script defer src="/js/pjax-no-enter-animation.js?v=20260511"></script><script defer src="/js/webinfo-count.js?v=20260509"></script><script defer src="/js/post-admin-edit.js?v=20261125"></script><div class="aplayer no-destroy" data-id="1985708788" data-server="netease" data-type="song" data-fixed="true" data-mini="true" data-listFolded="false" data-order="random" data-preload="none" data-autoplay="false" muted></div><script id="canvas_nest" defer="defer" color="0,0,255" opacity="0.7" zIndex="-1" count="50" mobile="false" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/canvas-nest.min.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/activate-power-mode.min.js"></script><script>POWERMODE.colorful = true;
+POWERMODE.shake = true;
+POWERMODE.mobile = false;
+document.body.addEventListener('input', POWERMODE);
+</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/metingjs/dist/Meting.min.js"></script><script>(() => {
+  const destroyAplayer = () => {
+    if (window.aplayers) {
+      for (let i = 0; i < window.aplayers.length; i++) {
+        if (!window.aplayers[i].options.fixed) {
+          window.aplayers[i].destroy()
+        }
+      }
+    }
+  }
+
+  const runMetingJS = () => {
+    typeof loadMeting === 'function' && document.getElementsByClassName('aplayer').length && loadMeting()
+  }
+
+  btf.addGlobalFn('pjaxSend', destroyAplayer, 'destroyAplayer')
+  btf.addGlobalFn('pjaxComplete', loadMeting, 'runMetingJS')
+})()</script><script src="https://cdn.jsdelivr.net/npm/pjax/pjax.min.js"></script><script>(() => {
+  const pjaxSelectors = ["head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+  window.pjax = new Pjax({
+    elements: 'a:not([target="_blank"])',
+    selectors: pjaxSelectors,
+    cacheBust: false,
+    analytics: false,
+    scrollRestoration: false
+  })
+
+  const triggerPjaxFn = (val) => {
+    if (!val) return
+    Object.values(val).forEach(fn => {
+      try {
+        fn()
+      } catch (err) {
+        console.debug('Pjax callback failed:', err)
+      }
+    })
+  }
+
+  document.addEventListener('pjax:send', () => {
+    // removeEventListener
+    btf.removeGlobalFnEvent('pjaxSendOnce')
+    btf.removeGlobalFnEvent('themeChange')
+
+    // reset readmode
+    const $bodyClassList = document.body.classList
+    if ($bodyClassList.contains('read-mode')) $bodyClassList.remove('read-mode')
+
+    triggerPjaxFn(window.globalFn.pjaxSend)
+  })
+
+  document.addEventListener('pjax:complete', () => {
+    btf.removeGlobalFnEvent('pjaxCompleteOnce')
+    document.querySelectorAll('script[data-pjax]').forEach(item => {
+      const newScript = document.createElement('script')
+      const content = item.text || item.textContent || item.innerHTML || ""
+      Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+      newScript.appendChild(document.createTextNode(content))
+      item.parentNode.replaceChild(newScript, item)
+    })
+
+    triggerPjaxFn(window.globalFn.pjaxComplete)
+  })
+
+  document.addEventListener('pjax:error', e => {
+    if (e.request.status === 404) {
+      const usePjax = true
+      true
+        ? (usePjax ? pjax.loadUrl('/404.html') : window.location.href = '/404.html')
+        : window.location.href = e.request.responseURL
+    }
+  })
+})()</script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="local-search-input"><input placeholder="搜索文章" type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/js/local-search.js?v=20261125-space"></script></div></div><!-- hexo injector body_end start --><script defer src="/js/vendor/marked.js"></script><script defer src="/js/vendor/purify.js"></script><script defer src="/js/pet-assistant.js?v=20261127-stream-errors"></script><script data-pjax>
+  function butterfly_clock_anzhiyu_injector_config(){
+    var parent_div_git = document.getElementsByClassName('sticky_layout')[0];
+    var item_html = '<div class="card-widget card-clock"><div class="card-glass"><div class="card-background"><div class="card-content"><div id="hexo_electric_clock"><img class="entered loading" id="card-clock-loading" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.cbd.int/hexo-butterfly-clock-anzhiyu/lib/loading.gif" style="height: 120px; width: 100%;" data-ll-status="loading"/></div></div></div></div></div>';
+    console.log('已挂载butterfly_clock_anzhiyu')
+    if(parent_div_git) {
+      parent_div_git.insertAdjacentHTML("afterbegin",item_html)
+    }
+  }
+  var elist = 'null'.split(',');
+  var cpage = location.pathname;
+  var epage = '/';
+  var qweather_key = 'b16a1fa0e63c46a4b8f28abfb06ae3fe';
+  var gaud_map_key = 'e2b04289e870b005374ee030148d64fd&s=rsv3';
+  var baidu_ak_key = 'undefined';
+  var flag = 0;
+  var clock_rectangle = '113.34532,23.15624';
+  var clock_default_rectangle_enable = 'false';
+
+  for (var i=0;i<elist.length;i++){
+    if (cpage.includes(elist[i])){
+      flag++;
+    }
+  }
+
+  if ((epage ==='all')&&(flag == 0)){
+    butterfly_clock_anzhiyu_injector_config();
+  }
+  else if (epage === cpage){
+    butterfly_clock_anzhiyu_injector_config();
+  }
+  </script><script src="https://widget.qweather.net/simple/static/js/he-simple-common.js?v=2.0"></script><script data-pjax src="/js/electric-clock.js?v=20260509-ip"></script><script data-pjax>
+  function butterfly_footer_beautify_injector_config(){
+    var parent_div_git = document.getElementById('footer');
+    var item_html = '<div id="workboard"></div><p id="ghbdages"><a class="github-badge" target="_blank" href="https://hexo.io/" style="margin-inline:5px" data-title="博客框架为Hexo_v6.2.0" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Frame-Hexo-blue?style=flat&amp;logo=hexo" alt=""/></a><a class="github-badge" target="_blank" href="https://butterfly.js.org/" style="margin-inline:5px" data-title="主题版本Butterfly_v4.3.1" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Theme-Butterfly-6513df?style=flat&amp;logo=bitdefender" alt=""/></a><a class="github-badge" target="_blank" href="https://vercel.com/" style="margin-inline:5px" data-title="本站采用多线部署，主线路托管于Vercel" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Hosted-Vercel-brightgreen?style=flat&amp;logo=Vercel" alt=""/></a><a class="github-badge" target="_blank" href="https://dashboard.4everland.org/" style="margin-inline:5px" data-title="本站采用多线部署，备用线路托管于4EVERLAND" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Hosted-4EVERLAND-22DDDD?style=flat&amp;logo=IPFS" alt=""/></a><a class="github-badge" target="_blank" href="https://github.com/" style="margin-inline:5px" data-title="本站项目由Github托管" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Source-Github-d021d6?style=flat&amp;logo=GitHub" alt=""/></a><a class="github-badge" target="_blank" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" style="margin-inline:5px" data-title="本站采用知识共享署名-非商业性使用-相同方式共享4.0国际许可协议进行许可" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Copyright-BY--NC--SA%204.0-d42328?style=flat&amp;logo=Claris" alt=""/></a></p>';
+    console.log('已挂载butterfly_footer_beautify')
+    parent_div_git.insertAdjacentHTML("beforeend",item_html)
+    }
+  var elist = 'null'.split(',');
+  var cpage = location.pathname;
+  var epage = 'all';
+  var flag = 0;
+
+  for (var i=0;i<elist.length;i++){
+    if (cpage.includes(elist[i])){
+      flag++;
+    }
+  }
+
+  if ((epage ==='all')&&(flag == 0)){
+    butterfly_footer_beautify_injector_config();
+  }
+  else if (epage === cpage){
+    butterfly_footer_beautify_injector_config();
+  }
+  </script><script async src="/js/footer-runtime.js?v=20260509"></script><div class="js-pjax"><script async="async">var arr = document.getElementsByClassName('recent-post-item');
+for(var i = 0;i<arr.length;i++){
+    arr[i].classList.add('wow');
+    arr[i].classList.add('animate__zoomIn');
+    arr[i].setAttribute('data-wow-duration', '1s');
+    arr[i].setAttribute('data-wow-delay', '1s');
+    arr[i].setAttribute('data-wow-offset', '100');
+    arr[i].setAttribute('data-wow-iteration', '1');
+  }</script><script async="async">var arr = document.getElementsByClassName('card-widget');
+for(var i = 0;i<arr.length;i++){
+    arr[i].classList.add('wow');
+    arr[i].classList.add('animate__zoomIn');
+    arr[i].setAttribute('data-wow-duration', '');
+    arr[i].setAttribute('data-wow-delay', '');
+    arr[i].setAttribute('data-wow-offset', '');
+    arr[i].setAttribute('data-wow-iteration', '');
+  }</script></div><script defer src="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/wow.min.js"></script><script defer src="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/wow_init.js"></script><script async src="//at.alicdn.com/t/font_2032782_8d5kxvn09md.js"></script><script data-pjax src="https://npm.elemecdn.com/hexo-filter-gitcalendar/lib/gitcalendar.js"></script><script data-pjax>
+  function gitcalendar_injector_config(){
+      var parent_div_git = document.getElementById('gitZone');
+      var item_html = '<div class="recent-post-item" id="gitcalendarBar" style="width:100%;height:auto;padding:10px;"><style>#git_container{min-height: 280px}@media screen and (max-width:650px) {#git_container{min-height: 0px}}</style><div id="git_loading" style="width:10%;height:100%;margin:0 auto;display: block;"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 50 50" style="enable-background:new 0 0 50 50" xml:space="preserve"><path fill="#d0d0d0" d="M25.251,6.461c-10.318,0-18.683,8.365-18.683,18.683h4.068c0-8.071,6.543-14.615,14.615-14.615V6.461z" transform="rotate(275.098 25 25)"><animatetransform attributeType="xml" attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.6s" repeatCount="indefinite"></animatetransform></path></svg><style>#git_container{display: none;}</style></div><div id="git_container"></div></div>';
+      parent_div_git.insertAdjacentHTML("afterbegin",item_html)
+      console.log('已挂载gitcalendar')
+      }
+
+    if( document.getElementById('gitZone') && (location.pathname ==='/about/'|| '/about/' ==='all')){
+        gitcalendar_injector_config()
+        GitCalendarInit("https://gh-calendar.rschristian.dev/user/Ghib6",['#d9e0df', '#c6e0dc', '#a8dcd4', '#9adcd2', '#89ded1', '#77e0d0', '#5fdecb', '#47dcc6', '#39dcc3', '#1fdabe', '#00dab9'],'Ghib6')
+    }
+  </script><!-- hexo injector body_end end --><script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"debug":false,"model":{"jsonPath":"/live2dw/assets/wanko.model.json"},"display":{"position":"left","width":150,"height":300},"mobile":{"show":false},"log":false});</script></body></html>

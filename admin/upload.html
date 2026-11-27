@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>图片上传工具</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        max-width: 720px;
+        margin: 48px auto;
+        padding: 0 16px;
+        line-height: 1.6;
+      }
+      .card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 16px;
+      }
+      button {
+        margin-top: 8px;
+        margin-right: 8px;
+        padding: 8px 12px;
+      }
+      #result {
+        margin-top: 16px;
+        word-break: break-all;
+      }
+      .tip {
+        color: #666;
+        font-size: 14px;
+      }
+      .row {
+        margin-bottom: 10px;
+      }
+      #secretInput {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Decap CMS 图片上传工具</h1>
+    <p class="tip">
+      上传成功后会返回图床外链（https://picbed.ghib6.com/img/xxx.png），复制后粘贴到配置字段即可。
+    </p>
+
+    <div class="card">
+      <div class="row">
+        <label for="secretInput">图床管理密钥（X-Upload-Secret）</label>
+        <input id="secretInput" type="password" placeholder="请输入图床管理密钥" />
+        <label><input id="rememberSecret" type="checkbox" /> 保存到当前会话（sessionStorage）</label>
+        <button id="clearSecretBtn" type="button">清除密钥</button>
+      </div>
+
+      <input id="fileInput" type="file" accept="image/*" />
+      <br />
+      <button id="uploadBtn" type="button">上传图片</button>
+      <button id="copyBtn" type="button" disabled>复制链接</button>
+      <div id="result"></div>
+    </div>
+
+    <p class="tip">
+      上传接口：
+      <code>https://blog-cms-oauth-dusky.vercel.app/api/upload</code>
+    </p>
+
+    <script src="./upload.js"></script>
+  </body>
+</html>

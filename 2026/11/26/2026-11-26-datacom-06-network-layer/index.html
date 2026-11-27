@@ -1,0 +1,979 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>数通06：网络层实验 | Ghib6</title><meta name="author" content="XBY"><meta name="copyright" content="XBY"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="ffffff"><meta name="description" content="从地址抓包、子网计算和三组掩码实验入手，完成网关互通，认识 IPv4 字段、ARP 与 ICMP，并整理八道面试问题。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="数通06：网络层实验">
+<meta property="og:url" content="https://www.ghib6.com/2026/11/26/2026-11-26-datacom-06-network-layer/index.html">
+<meta property="og:site_name" content="Ghib6">
+<meta property="og:description" content="从地址抓包、子网计算和三组掩码实验入手，完成网关互通，认识 IPv4 字段、ARP 与 ICMP，并整理八道面试问题。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://picbed.ghib6.com/img/posts/2026-11-26-datacom-06-network-layer-labs.png">
+<meta property="article:published_time" content="2026-11-26T14:40:06.000Z">
+<meta property="article:modified_time" content="2026-11-27T08:10:48.217Z">
+<meta property="article:author" content="XBY">
+<meta property="article:tag" content="ARP">
+<meta property="article:tag" content="ICMP">
+<meta property="article:tag" content="IPv4">
+<meta property="article:tag" content="子网掩码">
+<meta property="article:tag" content="网络层">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://picbed.ghib6.com/img/posts/2026-11-26-datacom-06-network-layer-labs.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "数通06：网络层实验",
+  "url": "https://www.ghib6.com/2026/11/26/2026-11-26-datacom-06-network-layer/",
+  "image": "https://picbed.ghib6.com/img/posts/2026-11-26-datacom-06-network-layer-labs.png",
+  "datePublished": "2026-11-26T14:40:06.000Z",
+  "dateModified": "2026-11-27T08:10:48.217Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "XBY",
+      "url": "https://www.ghib6.com"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/moon.jpg"><link rel="canonical" href="https://www.ghib6.com/2026/11/26/2026-11-26-datacom-06-network-layer/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.css" media="print" onload="this.media='all'"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!true && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', 'ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          const hour = new Date().getHours()
+          const isNight = hour <= 6 || hour >= 18
+          if (theme === undefined) isNight ? activateDarkMode() : activateLightMode()
+          else theme === 'light' ? activateLightMode() : activateDarkMode()
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":true,"top_n_per_article":1,"unescape":false,"pagination":{"enable":true,"hitsPerPage":8},"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: {"defaultEncoding":2,"translateDelay":0,"msgToTraditionalChinese":"繁","msgToSimplifiedChinese":"简"},
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: true,
+    post: true
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: {"chs_to_cht":"已切换为繁体中文","cht_to_chs":"已切换为简体中文","day_to_night":"已切换为深色模式","night_to_day":"已切换为浅色模式","bgLight":"#49b1f5","bgDark":"#1f1f1f","position":"top-right"},
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: true,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '数通06：网络层实验',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="stylesheet" href="/css/custom.css" media="defer" onload="this.media='all'"><link rel="stylesheet" href="/css/custom.css"><link rel="stylesheet" href="/css/universe.css"><link rel="stylesheet" href="/css/progress_bar.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end start --><link rel="stylesheet" href="/css/pet-assistant.css?v=20261127-stream"><link rel="stylesheet" href="https://cdn.cbd.int/hexo-butterfly-clock-anzhiyu/lib/clock.min.css" /><link rel="stylesheet" href="/css/footer-runtime.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/animate.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-butterfly-tag-plugins-plus@latest/lib/assets/font-awesome-animation.min.css" media="defer" onload="this.media='all'"><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-butterfly-tag-plugins-plus@latest/lib/tag_plugins.css" media="defer" onload="this.media='all'"><script src="https://npm.elemecdn.com/hexo-butterfly-tag-plugins-plus@latest/lib/assets/carousel-touch.js"></script><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-filter-gitcalendar/lib/gitcalendar.css" media="print" onload="this.media='all'"><!-- hexo injector head_end end --><meta name="generator" content="Hexo 8.0.0"></head><body><div id="web_bg" style="background-image: url(https://picbed.ghib6.com/img/15.jpg);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/touxiang.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">29</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">89</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">7</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fa fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fa fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fa fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fa fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><span class="site-page group hide"><i class="fa-fw fa fa-list"></i><span> 列表</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fa fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fa fa-video"></i><span> 电影</span></a></li><li><a class="site-page child" target="_blank" rel="noopener" href="https://graph.ghib6.com/"><i class="fa-fw fa fa-project-diagram"></i><span> 思维导图</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/comments/"><i class="fa-fw fa fa-envelope-open"></i><span> 留言板</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fa fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(https://picbed.ghib6.com/img/posts/2026-11-26-datacom-06-network-layer-labs.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Ghib6</span></a><a class="nav-page-title" href="/"><span class="site-name">数通06：网络层实验</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fa fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fa fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fa fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fa fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><span class="site-page group hide"><i class="fa-fw fa fa-list"></i><span> 列表</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fa fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fa fa-video"></i><span> 电影</span></a></li><li><a class="site-page child" target="_blank" rel="noopener" href="https://graph.ghib6.com/"><i class="fa-fw fa fa-project-diagram"></i><span> 思维导图</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/comments/"><i class="fa-fw fa fa-envelope-open"></i><span> 留言板</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fa fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">数通06：网络层实验</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-11-26T14:40:06.000Z" title="发表于 2026-11-26 14:40:06">2026-11-26</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-11-27T08:10:48.217Z" title="更新于 2026-11-27 08:10:48">2026-11-27</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%95%B0%E9%80%9A%E5%9F%BA%E7%A1%80/">数通基础</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">4.6k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>16分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span><span class="post-meta-separator">|</span><span class="post-meta-commentcount"><i class="far fa-comments fa-fw post-meta-icon"></i><span class="post-meta-label">评论数:</span><a href="/2026/11/26/2026-11-26-datacom-06-network-layer/#post-comment"><span id="twikoo-count"><i class="fa-solid fa-spinner fa-spin"></i></span></a></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-11-27 08:10:48&quot;}" hidden></div><p>两台电脑的网线已经接好，IP 都以 <code>10.0.0</code> 开头，为什么还是 ping 不通？把其中一台的掩码从 <code>/25</code> 改成 <code>/24</code>，结果会怎样？</p>
+<p>这一篇从地址与抓包开始，接着做三组掩码对照，再加入路由器完成跨网段通信。后面的 IPv4、ARP 和 ICMP，就放回这些实验里观察。</p>
+<div class="note info simple"><p>说明：以下配置、报文过程和通断结论是实验步骤与预期，尚未在真机逐项实测。各组实验独立配置；涉及通断时，默认接口启用、链路正常、终端允许 ICMP，没有额外路由、代理 ARP 或隔离策略。</p>
+</div>
+
+<span id="more"></span>
+
+<h2 id="网络层作用"><a href="#网络层作用" class="headerlink" title="网络层作用"></a>网络层作用</h2><p>网络层位于传输层与数据链路层之间，负责逻辑寻址、IP 分组封装，以及跨网络转发。路由器根据目的 IP 查询路由表，决定接下来往哪里送。</p>
+<p>上一层交下来的数据，被装进 IP 包；下一步还要按当前链路封装成帧。**IP 负责去哪个目的地，链路层负责这一段怎样交付。**IP 本身提供尽力而为服务，不保证可靠到达；路由选择也不是只看地理距离最近。</p>
+<h2 id="IP-地址"><a href="#IP-地址" class="headerlink" title="IP 地址"></a>IP 地址</h2><h3 id="先查看网卡，再抓一次访问"><a href="#先查看网卡，再抓一次访问" class="headerlink" title="先查看网卡，再抓一次访问"></a>先查看网卡，再抓一次访问</h3><p>在 Windows 上运行：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ipconfig /all</span><br></pre></td></tr></table></figure>
+
+<p>先记录下面四项，再在实际联网网卡上启动 Wireshark，打开 <code>www.baidu.com</code>，停止抓包后查看 IPv4 报文。网站的实际地址会变化，应以本次解析与抓包为准。</p>
+<p style="text-align: center;"><small>表 1 网卡信息的四个观察项</small></p>
+
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>在本次访问里做什么</th>
+<th>记录什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>IP 地址</td>
+<td>标识接口的 IPv4 地址</td>
+<td>本机实际地址</td>
+</tr>
+<tr>
+<td>子网掩码</td>
+<td>与地址一起判断目标是否在本地子网</td>
+<td>掩码或前缀长度</td>
+</tr>
+<tr>
+<td>默认网关</td>
+<td>没有更具体匹配路由时使用的下一跳</td>
+<td>网关地址</td>
+</tr>
+<tr>
+<td>DNS 服务器</td>
+<td>解析网站域名</td>
+<td>实际使用的 DNS 地址</td>
+</tr>
+</tbody></table>
+<p>这四项是常见联网检查项，不表示每一种通信都必须同时使用它们。直接访问本地 IP 不需要 DNS；本地子网通信也不必经过默认网关。</p>
+<p>下面是一段抓包示例。它显示本机 <code>192.168.103.35</code> 与一个远端地址之间的 TCP、TLS 流量，不能把图中的远端地址当成网站永久不变的地址。</p>
+<p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-26-datacom-06-network-layer-capture.png" alt="Wireshark中192.168.103.35向远端地址发送TCP与TLS报文"></p>
+<p style="text-align: center;"><small>图 1 网页访问的抓包记录</small></p>
+
+<p>选择一条记录，展开 Internet Protocol Version 4，再点击 Source Address。对照字段与底部字节区，可以看到同一个地址的不同表示方式。</p>
+<h3 id="十进制、十六进制与二进制"><a href="#十进制、十六进制与二进制" class="headerlink" title="十进制、十六进制与二进制"></a>十进制、十六进制与二进制</h3><p>IPv4 地址是 32 bit，通常按四个 8 bit 分组显示。每组十进制范围为 0—255。<code>192.168.103.35</code> 的转换见表 2。</p>
+<p style="text-align: center;"><small>表 2 同一个 IPv4 地址的三种表示</small></p>
+
+<table>
+<thead>
+<tr>
+<th>十进制</th>
+<th>十六进制</th>
+<th>二进制</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>192</td>
+<td>C0</td>
+<td>11000000</td>
+</tr>
+<tr>
+<td>168</td>
+<td>A8</td>
+<td>10101000</td>
+</tr>
+<tr>
+<td>103</td>
+<td>67</td>
+<td>01100111</td>
+</tr>
+<tr>
+<td>35</td>
+<td>23</td>
+<td>00100011</td>
+</tr>
+</tbody></table>
+<p>所以四个字节为 <code>C0 A8 67 23</code>，共八个十六进制数字。比如 <code>103 ÷ 16 = 6 余 7</code>，对应 <code>67</code>。32 bit 有 <code>2^32</code> 种编码，但并非全部都可分配给普通主机。</p>
+<h3 id="子网掩码与地址范围计算"><a href="#子网掩码与地址范围计算" class="headerlink" title="子网掩码与地址范围计算"></a>子网掩码与地址范围计算</h3><p>子网掩码也是 32 bit，常规连续掩码用前面的 1 表示网络位，后面的 0 表示主机位。<code>/24</code> 表示前 24 bit 是网络位；地址与掩码按位与，可得到网络地址。</p>
+<p style="text-align: center;"><small>表 3 三个子网计算例子</small></p>
+
+<table>
+<thead>
+<tr>
+<th>地址</th>
+<th>掩码</th>
+<th>网络地址</th>
+<th>整个地址范围</th>
+<th>普通可用主机范围</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>192.168.103.35&#x2F;24</td>
+<td>255.255.255.0</td>
+<td>192.168.103.0</td>
+<td>192.168.103.0—192.168.103.255</td>
+<td>.1—.254</td>
+</tr>
+<tr>
+<td>192.168.103.35&#x2F;21</td>
+<td>255.255.248.0</td>
+<td>192.168.96.0</td>
+<td>192.168.96.0—192.168.103.255</td>
+<td>192.168.96.1—192.168.103.254</td>
+</tr>
+<tr>
+<td>192.168.103.35&#x2F;28</td>
+<td>255.255.255.240</td>
+<td>192.168.103.32</td>
+<td>192.168.103.32—192.168.103.47</td>
+<td>.33—.46</td>
+</tr>
+</tbody></table>
+<p><code>/21</code> 的变化在第三段，步长为 <code>256 − 248 = 8</code>。103 落在 96—103 这一组，因此范围从 <code>192.168.96.0</code> 到 <code>192.168.103.255</code>。</p>
+<p><code>/28</code> 的变化在第四段，步长为 <code>256 − 240 = 16</code>。35 落在 32—47，网络地址为 <code>.32</code>，广播地址为 <code>.47</code>，普通主机使用中间的 14 个地址。</p>
+<h3 id="应用实验：三组掩码对照"><a href="#应用实验：三组掩码对照" class="headerlink" title="应用实验：三组掩码对照"></a>应用实验：三组掩码对照</h3><p>先按图 2 上半部分直连两台 PC，不配置网关，不保留其他路由。每换一组地址，清理旧地址与邻居缓存，再从两边分别 ping 对方，抓包用 <code>arp or icmp</code> 观察。</p>
+<p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-26-datacom-06-network-layer-labs.png" alt="上半部分为两台PC直连的三组掩码实验，下半部分为两个网段通过路由器互连的网关实验"></p>
+<p style="text-align: center;"><small>图 2 掩码与网关实验拓扑</small></p>
+
+<p style="text-align: center;"><small>表 4 三组独立配置及预期</small></p>
+
+<table>
+<thead>
+<tr>
+<th>组别</th>
+<th>PC1</th>
+<th>PC2</th>
+<th>双向 ping 的预期</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>10.0.0.1&#x2F;25</td>
+<td>10.0.0.254&#x2F;25</td>
+<td>不能互通</td>
+</tr>
+<tr>
+<td>二</td>
+<td>10.0.0.1&#x2F;25</td>
+<td>10.0.0.254&#x2F;24</td>
+<td>不能完成正常双向通信</td>
+</tr>
+<tr>
+<td>三</td>
+<td>10.0.0.1&#x2F;25</td>
+<td>10.0.0.2&#x2F;24</td>
+<td>可以互通</td>
+</tr>
+</tbody></table>
+<details class="folding-tag" cyan><summary> 第一组：同样是 /25，为什么不通？ </summary>
+              <div class='content'>
+              <p>**两个地址位于不同子网。**PC1 属于 <code>10.0.0.0/25</code>，PC2 属于 <code>10.0.0.128/25</code>。双方都把对方判断为远端目标，又没有网关或匹配路由，无法完成正常通信。</p><p>抓包时重点确认：终端没有因为前三段相同，就直接把对方当成本地邻居。不要把失败统一解释成“ARP 广播被交换机拦住”，这组根本没有交换机。</p>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 第二组：只有一边改 /24，为什么还是不通？ </summary>
+              <div class='content'>
+              <p>**两端对“本地”的判断不一致。**PC1 按 &#x2F;25 判断 <code>.254</code> 在远端，没有匹配路由；PC2 按 &#x2F;24 判断 <code>.1</code> 在本地，可以为 <code>.1</code> 发 ARP。</p><p>从 PC2 抓到 ARP 请求，甚至收到 PC1 的 ARP 应答，都不能证明 ICMP 往返已经成功。PC1 返回给 <code>.254</code> 时仍受自己的 &#x2F;25 与路由约束。这组要分别记录去程、回程，不能只看有没有 ARP。</p>
+              </div>
+            </details>
+
+<details class="folding-tag" green><summary> 第三组：掩码不同，为什么却能通？ </summary>
+              <div class='content'>
+              <p>**这两个具体地址在双方看来都是本地地址。**PC1 的 &#x2F;25 覆盖 <code>.0—.127</code>，包含 <code>.2</code>；PC2 的 &#x2F;24 也包含 <code>.1</code>。双方都能直接 ARP 找到对端，再发送 ICMP。</p><p>因此不能把“掩码不同必然不通”当成规则。这组成功也不代表地址规划合理：换到前一组的 <code>.254</code>，判断就变了。</p>
+              </div>
+            </details>
+
+<h3 id="网关实验：跨网段互通"><a href="#网关实验：跨网段互通" class="headerlink" title="网关实验：跨网段互通"></a>网关实验：跨网段互通</h3><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-26-datacom-06-network-layer-labs.png" alt="网关实验的两侧地址与抓包点"></p>
+<p style="text-align: center;"><small>图 3 网关实验接线与地址</small></p>
+
+<p>这组改用图 3 下半部分。PC1 接 R1 的 GE0&#x2F;0&#x2F;1，PC2 接 GE0&#x2F;0&#x2F;2，两条链路分别抓包。与直连实验分开，不叠加旧地址。</p>
+<p style="text-align: center;"><small>表 5 网关实验配置</small></p>
+
+<table>
+<thead>
+<tr>
+<th>设备或接口</th>
+<th>地址</th>
+<th>默认网关</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PC1</td>
+<td>10.0.1.2&#x2F;24</td>
+<td>10.0.1.1</td>
+</tr>
+<tr>
+<td>R1 GE0&#x2F;0&#x2F;1</td>
+<td>10.0.1.1&#x2F;24</td>
+<td>本实验不需要默认路由</td>
+</tr>
+<tr>
+<td>R1 GE0&#x2F;0&#x2F;2</td>
+<td>10.0.2.1&#x2F;24</td>
+<td>本实验不需要默认路由</td>
+</tr>
+<tr>
+<td>PC2</td>
+<td>10.0.2.2&#x2F;24</td>
+<td>10.0.2.1</td>
+</tr>
+</tbody></table>
+<p>路由器配置示例使用华为风格接口命令，实际接口编号按实验设备替换。若用三层交换机，需要先确认接口支持路由模式，不能直接假定二层端口能配 IP。</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">system-view</span><br><span class="line">interface GigabitEthernet 0/0/1</span><br><span class="line"> ip address 10.0.1.1 255.255.255.0</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">interface GigabitEthernet 0/0/2</span><br><span class="line"> ip address 10.0.2.1 255.255.255.0</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">display ip routing-table</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>配置两台 PC 的地址、掩码和网关，先分别 ping 自己的网关。</li>
+<li>在两条链路启动抓包，再由 PC1 ping <code>10.0.2.2</code>。</li>
+<li>检查 <code>10.0.1.0/24</code>、<code>10.0.2.0/24</code> 两条直连网段路由与对应接口状态。</li>
+<li>对照两侧报文，记录源、目的 IP，源、目的 MAC，以及 TTL。</li>
+</ol>
+<p>**配置完整时，两台 PC 可以互通，不需要另加静态路由。**两个目标网段都直接连在 R1 上。</p>
+<p>PC1 先按掩码判断目标在远端，再解析网关 <code>10.0.1.1</code> 的 MAC；第一帧交给网关，IP 目的地址仍是 <code>10.0.2.2</code>。R1 查路由后，在另一侧解析 PC2 的 MAC 并重新封装。普通转发且没有 NAT 时，源、目的 IP 保持不变，MAC 随链路改变，TTL 递减。</p>
+<div class="note info simple"><p>注：第一次 ping 可能受 ARP 解析时机影响。实验记录应区分首次丢包、持续不通，以及路由或邻居解析失败，不把预期写成已经测得的输出。</p>
+</div>
+
+<h2 id="IP-地址分类"><a href="#IP-地址分类" class="headerlink" title="IP 地址分类"></a>IP 地址分类</h2><h3 id="典型分类与私网地址"><a href="#典型分类与私网地址" class="headerlink" title="典型分类与私网地址"></a>典型分类与私网地址</h3><p>传统 A、B、C 分类用于理解历史地址结构；实际判断网络范围时，用当前掩码或 CIDR 前缀，不能只看第一段就套默认掩码。</p>
+<p style="text-align: center;"><small>表 6 传统分类与私网地址块</small></p>
+
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>首字节范围</th>
+<th>传统默认前缀</th>
+<th>相关私网地址块</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>A</td>
+<td>0—127</td>
+<td>&#x2F;8</td>
+<td>10.0.0.0&#x2F;8</td>
+</tr>
+<tr>
+<td>B</td>
+<td>128—191</td>
+<td>&#x2F;16</td>
+<td>172.16.0.0&#x2F;12</td>
+</tr>
+<tr>
+<td>C</td>
+<td>192—223</td>
+<td>&#x2F;24</td>
+<td>192.168.0.0&#x2F;16</td>
+</tr>
+<tr>
+<td>D</td>
+<td>224—239</td>
+<td>不用于普通单播网络号划分</td>
+<td>组播</td>
+</tr>
+<tr>
+<td>E</td>
+<td>240—255</td>
+<td>不用于普通单播网络号划分</td>
+<td>保留及特殊用途</td>
+</tr>
+</tbody></table>
+<p>表中分类范围不是普通主机的可分配清单。例如 <code>127.0.0.0/8</code> 用于环回。私网地址可以在不同的隔离网络中重复使用，但在需要互通的范围内仍要避免冲突；不是“非私网地址就全部是公网可用地址”。</p>
+<h3 id="特殊地址"><a href="#特殊地址" class="headerlink" title="特殊地址"></a>特殊地址</h3><p style="text-align: center;"><small>表 7 常见特殊 IPv4 地址</small></p>
+
+<table>
+<thead>
+<tr>
+<th>地址</th>
+<th>用途与检查点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>255.255.255.255</td>
+<td>受限广播，路由器不转发到其他网络</td>
+</tr>
+<tr>
+<td>子网主机位全 1</td>
+<td>该子网的定向广播地址，例如 192.168.103.255&#x2F;24</td>
+</tr>
+<tr>
+<td>224.0.0.0&#x2F;4</td>
+<td>组播目的地址范围，不作为普通单播源地址</td>
+</tr>
+<tr>
+<td>127.0.0.0&#x2F;8</td>
+<td>本机环回；ping通127.0.0.1不能证明外部链路正常</td>
+</tr>
+<tr>
+<td>169.254.0.0&#x2F;16</td>
+<td>IPv4 链路本地；自动选择范围为169.254.1.0—169.254.254.255</td>
+</tr>
+<tr>
+<td>0.0.0.0</td>
+<td>未指定地址，具体含义看使用位置；路由表中的0.0.0.0&#x2F;0表示默认路由</td>
+</tr>
+</tbody></table>
+<p>链路本地地址的选择范围与保留部分见 <a target="_blank" rel="noopener" href="https://www.rfc-editor.org/rfc/rfc3927.html">RFC 3927</a>。它不能简单写成“所有获取地址失败的设备一定都会自动配置”。</p>
+<h2 id="IPv4-协议"><a href="#IPv4-协议" class="headerlink" title="IPv4 协议"></a>IPv4 协议</h2><h3 id="报文字段对照"><a href="#报文字段对照" class="headerlink" title="报文字段对照"></a>报文字段对照</h3><p>继续选中网关实验中的 IPv4 报文，按表 8 展开字段，重点观察地址、TTL、Protocol 与长度。</p>
+<p style="text-align: center;"><small>表 8 IPv4 首部字段</small></p>
+
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>位数</th>
+<th>抓包时怎样读</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Version</td>
+<td>4</td>
+<td>IPv4 的值为4</td>
+</tr>
+<tr>
+<td>IHL</td>
+<td>4</td>
+<td>单位为4字节；值5表示20字节，最大60字节</td>
+</tr>
+<tr>
+<td>服务字段</td>
+<td>8</td>
+<td>现按DSCP与ECN解释，不只是泛称TOS</td>
+</tr>
+<tr>
+<td>Total Length</td>
+<td>16</td>
+<td>整个IP包长度，包括IP首部与载荷</td>
+</tr>
+<tr>
+<td>Identification</td>
+<td>16</td>
+<td>配合源、目的地址与协议等识别待重组报文</td>
+</tr>
+<tr>
+<td>Flags</td>
+<td>3</td>
+<td>保留位、DF、MF</td>
+</tr>
+<tr>
+<td>Fragment Offset</td>
+<td>13</td>
+<td>片偏移，以8字节为单位</td>
+</tr>
+<tr>
+<td>TTL</td>
+<td>8</td>
+<td>限制报文在网络中继续转发的寿命</td>
+</tr>
+<tr>
+<td>Protocol</td>
+<td>8</td>
+<td>标识IP载荷协议</td>
+</tr>
+<tr>
+<td>Header Checksum</td>
+<td>16</td>
+<td>IPv4首部校验，不覆盖整个载荷</td>
+</tr>
+<tr>
+<td>Source &#x2F; Destination Address</td>
+<td>各32</td>
+<td>源IP与目的IP</td>
+</tr>
+<tr>
+<td>Options与Padding</td>
+<td>0—40字节</td>
+<td>可选字段与填充</td>
+</tr>
+</tbody></table>
+<div class="note info simple"><p>注：片偏移是13位，不能写成12位；IHL的原始值也不是直接以字节计数。基本首部定义可核对 <a target="_blank" rel="noopener" href="https://www.rfc-editor.org/rfc/rfc791.html">RFC 791</a>。</p>
+</div>
+
+<h3 id="分片、TTL-与协议号"><a href="#分片、TTL-与协议号" class="headerlink" title="分片、TTL 与协议号"></a>分片、TTL 与协议号</h3><p>IPv4 包超过出接口 MTU 时，是否分片还要看 DF。**DF&#x3D;0允许分片；DF&#x3D;1不允许分片，不能原样转发时丢弃并按规则报告。**MF&#x3D;1表示后面还有分片；MF&#x3D;0既可以是最后一片，也可以是未分片包，要结合片偏移判断。偏移针对原始IP载荷的位置，不包含每片新增的首部。</p>
+<p>TTL在路由转发时递减，耗尽后不能继续转发。两侧对比时，应匹配同一个请求；不能拿去程请求与另一台主机发出的回复直接相减。TTL限制循环报文的存活，不等于消除了环路。</p>
+<p style="text-align: center;"><small>表 9 常见 IP 协议号</small></p>
+
+<table>
+<thead>
+<tr>
+<th>数值</th>
+<th>协议</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>ICMP</td>
+</tr>
+<tr>
+<td>2</td>
+<td>IGMP</td>
+</tr>
+<tr>
+<td>6</td>
+<td>TCP</td>
+</tr>
+<tr>
+<td>17</td>
+<td>UDP</td>
+</tr>
+<tr>
+<td>89</td>
+<td>OSPF</td>
+</tr>
+</tbody></table>
+<p>Protocol不是端口号。ping产生的ICMP直接封装在IP里，不必先套TCP或UDP。</p>
+<h2 id="ARP-协议"><a href="#ARP-协议" class="headerlink" title="ARP 协议"></a>ARP 协议</h2><h3 id="从目的-IP-找到下一跳-MAC"><a href="#从目的-IP-找到下一跳-MAC" class="headerlink" title="从目的 IP 找到下一跳 MAC"></a>从目的 IP 找到下一跳 MAC</h3><p>以同一链路上的 <code>10.1.1.1/24</code> 与 <code>10.1.1.2/24</code> 为例：A没有B的邻居表项时，广播ARP请求；B识别出请求目标是自己后，回复自己的MAC。A记下映射，再发送以太网帧。</p>
+<p>跨网段时，A解析的是所选下一跳的MAC，而不是把ARP广播发到远端网段去找最终主机。ARP直接封装在以太网中，EtherType为 <code>0x0806</code>，不是IP Protocol字段里的某个值。</p>
+<p style="text-align: center;"><small>表 10 ARP 报文观察项</small></p>
+
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>以太网与IPv4中的常见值或用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Hardware Type &#x2F; Protocol Type</td>
+<td>1 &#x2F; 0x0800</td>
+</tr>
+<tr>
+<td>Hardware Length &#x2F; Protocol Length</td>
+<td>6 &#x2F; 4字节</td>
+</tr>
+<tr>
+<td>Operation Code</td>
+<td>1请求、2应答</td>
+</tr>
+<tr>
+<td>Sender Hardware &#x2F; Protocol Address</td>
+<td>发送方MAC &#x2F; IPv4</td>
+</tr>
+<tr>
+<td>Target Hardware &#x2F; Protocol Address</td>
+<td>目标MAC &#x2F; IPv4；请求时目标MAC尚未知</td>
+</tr>
+</tbody></table>
+<h3 id="ARP-代理"><a href="#ARP-代理" class="headerlink" title="ARP 代理"></a>ARP 代理</h3><p>示例中A为 <code>10.1.0.1/8</code>，B为 <code>10.2.0.1/8</code>，路由器两侧分别为 <code>10.1.0.2/16</code>、<code>10.2.0.2/16</code>。主机按&#x2F;8把对方判断为本地，但两台主机实际处在路由器分隔的链路上。</p>
+<p>**只有路由器启用相应代理ARP、具有目标路由并满足回复条件时，才会代答。**它向A提供自己的接口MAC，接到IP包后再路由转发。原理图中“代理请求”不表示原始ARP广播被原样穿透到另一侧；路由器在另一侧单独解析邻居。回程也需要相应条件，不能只确认一个方向。</p>
+<h3 id="免费-ARP"><a href="#免费-ARP" class="headerlink" title="免费 ARP"></a>免费 ARP</h3><p>免费ARP用于通告本机地址、辅助发现冲突或更新邻居信息。常见请求形式中，发送方与目标协议地址都填写本机IP，以太网目的MAC为广播地址；ARP内未知目标硬件地址可以为全0。</p>
+<p>抓包时要把以太网目的MAC与ARP内部目标硬件地址分开看。全0不表示这帧在以太网上是发往全0地址；免费ARP也存在通告应答等形式，不只一种固定报文。</p>
+<h2 id="ICMP-协议"><a href="#ICMP-协议" class="headerlink" title="ICMP 协议"></a>ICMP 协议</h2><h3 id="ping-与-tracert-怎样观察"><a href="#ping-与-tracert-怎样观察" class="headerlink" title="ping 与 tracert 怎样观察"></a>ping 与 tracert 怎样观察</h3><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-26-datacom-06-network-layer-labs.png" alt="ICMP观察沿用网关实验的接线与地址"></p>
+<p style="text-align: center;"><small>图 4 ICMP观察的实验连接</small></p>
+
+<p>沿用图4下半部分的网关实验，保持地址不变，抓包过滤 <code>icmp</code>，在Windows PC1执行：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ping 10.0.2.2</span><br><span class="line">tracert -d 10.0.2.2</span><br></pre></td></tr></table></figure>
+
+<p>先找Echo Request与Echo Reply，再看IPv4 Protocol是否为1。Windows tracert逐步增加TTL，通过中间设备的超时报文识别路径；其他平台的跟踪工具可能使用UDP等探测方式。</p>
+<p style="text-align: center;"><small>表 11 常见 ICMP 类型与代码</small></p>
+
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Code</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>0</td>
+<td>Echo Reply</td>
+</tr>
+<tr>
+<td>8</td>
+<td>0</td>
+<td>Echo Request</td>
+</tr>
+<tr>
+<td>3</td>
+<td>0 &#x2F; 1 &#x2F; 2 &#x2F; 3</td>
+<td>网络 &#x2F; 主机 &#x2F; 协议 &#x2F; 端口不可达</td>
+</tr>
+<tr>
+<td>3</td>
+<td>4</td>
+<td>需要分片但DF已设置</td>
+</tr>
+<tr>
+<td>5</td>
+<td>0 &#x2F; 1</td>
+<td>网络 &#x2F; 主机重定向</td>
+</tr>
+<tr>
+<td>11</td>
+<td>0</td>
+<td>转发过程中TTL耗尽</td>
+</tr>
+</tbody></table>
+<h3 id="重定向与错误报告"><a href="#重定向与错误报告" class="headerlink" title="重定向与错误报告"></a>重定向与错误报告</h3><p>重定向场景中，主机 <code>10.0.0.1/24</code> 的默认网关是 <code>10.0.0.100</code>；同一链路上还有通向目标网络的路由器 <code>10.0.0.200</code>。网关接到请求后，发现更合适的下一跳仍在主机所在链路，满足条件时会向主机发送Redirect。</p>
+<p>这是建议主机调整下一跳，不代表所有系统都会接受并永久修改路由。观察时记录ICMP的Type、Code与通告网关地址，不能只看有没有出现“Redirect”文字。</p>
+<p>**超时只说明没有按时收到预期回复，不能单独证明目标断电；不可达也不是所有故障都必然产生。**设备策略、限速与ICMP处理规则会影响返回消息。收到错误报告时，查看是谁发回、Type与Code是什么，以及引用的原始报文，才能继续定位。</p>
+<h2 id="重点回顾"><a href="#重点回顾" class="headerlink" title="重点回顾"></a>重点回顾</h2><h3 id="实验记录整理"><a href="#实验记录整理" class="headerlink" title="实验记录整理"></a>实验记录整理</h3><p>把三组掩码实验的两端地址、目标判断、ARP与ICMP记录分开；网关实验则补上两条直连网段路由和两侧的MAC、TTL。这样“不能通”就能对应到具体的一步，而不是只留一行ping截图。</p>
+<h3 id="面试问题"><a href="#面试问题" class="headerlink" title="面试问题"></a>面试问题</h3><details class="folding-tag" cyan><summary> 网络层与数据链路层有什么区别？ </summary>
+              <div class='content'>
+              <p>网络层负责逻辑寻址与跨网络转发；数据链路层负责当前链路上的成帧与交付。网关实验里，IP目的地址指向PC2，第一帧目的MAC却指向PC1的网关。</p>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 一个 /24 可以划分多少个 /29？ </summary>
+              <div class='content'>
+              <p>可以划分32个，计算为2^(29−24)。每个&#x2F;29有8个地址，按普通广播子网计算可用6个主机地址。例如192.168.1.0&#x2F;24分出的子网从.0&#x2F;29、.8&#x2F;29递增到.248&#x2F;29。</p>
+              </div>
+            </details>
+
+<details class="folding-tag" green><summary> IP 地址有哪些分类？ </summary>
+              <div class='content'>
+              <p>传统分A、B、C、D、E；D用于组播，E为保留及特殊用途。实际网络范围按当前掩码或CIDR判断；另外可以按公网、私网与特殊用途来认识地址。</p>
+              </div>
+            </details>
+
+<details class="folding-tag" cyan><summary> 私网 IPv4 地址有哪些？ </summary>
+              <div class='content'>
+              <p>10.0.0.0&#x2F;8、172.16.0.0&#x2F;12、192.168.0.0&#x2F;16。第二块到172.31.255.255，不是整个172开头都属于私网。</p>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> TTL 有什么作用？ </summary>
+              <div class='content'>
+              <p>限制报文继续转发的寿命，避免循环报文无限存活。路由转发时递减，耗尽后丢弃，并在适用条件下返回ICMP超时消息；二层普通交换转发不会因此递减IP TTL。</p>
+              </div>
+            </details>
+
+<details class="folding-tag" green><summary> ICMP 有什么作用？ </summary>
+              <div class='content'>
+              <p>传递IP通信中的差错和控制信息。ping用Echo请求与应答观察往返可达性，路径跟踪利用TTL递增与超时反馈；ICMP本身不替IP保证可靠传输。</p>
+              </div>
+            </details>
+
+<details class="folding-tag" cyan><summary> ARP 的原理是什么？ </summary>
+              <div class='content'>
+              <p>在本地链路上解析下一跳IPv4对应的MAC。邻居缓存没有映射时发请求，目标回复后更新映射，再封装以太网帧；跨网段通信解析网关MAC。</p>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> ARP 代理与免费 ARP 是什么？ </summary>
+              <div class='content'>
+              <p>代理ARP由满足条件的设备代目标回复，使发送方先把帧交给代理设备，再由它转发。免费ARP则围绕本机地址进行通告、冲突发现等，不需要先有别人来查询。两者不能混为一谈。</p>
+              </div>
+            </details>
+<span hidden data-post-admin-edit="/admin/#/collections/posts/entries/2026-11-26-datacom-06-network-layer"></span></article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://www.ghib6.com">XBY</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://www.ghib6.com/2026/11/26/2026-11-26-datacom-06-network-layer/">https://www.ghib6.com/2026/11/26/2026-11-26-datacom-06-network-layer/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://www.ghib6.com" target="_blank">Ghib6</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E7%BD%91%E7%BB%9C%E5%B1%82/">网络层</a><a class="post-meta__tags" href="/tags/IPv4/">IPv4</a><a class="post-meta__tags" href="/tags/%E5%AD%90%E7%BD%91%E6%8E%A9%E7%A0%81/">子网掩码</a><a class="post-meta__tags" href="/tags/ARP/">ARP</a><a class="post-meta__tags" href="/tags/ICMP/">ICMP</a></div><div class="post-share"><div class="social-share" data-image="https://picbed.ghib6.com/img/posts/2026-11-26-datacom-06-network-layer-labs.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/11/26/2026-11-26-datacom-07-ip-routing/" title="数通07：IP路由基础"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-26-datacom-07-ip-routing-table.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">数通07：IP路由基础</div></div><div class="info-2"><div class="info-item-1">上一篇把两个网段接在同一台路由器上，靠直连路由就能转发。现在目标在另一台路由器后面：设备从哪里知道该往哪走，静态路由又该填哪个地址？ 这一篇按路由概述、路由表、转发流程、高级特性和配置案例展开。先读表，再配置，最后对照表项与流量变化。 说明：截图用于读表，配置步骤和通信结果为待验证的实验预期，不代表已在真机执行。各案例独立，地址与接口不能混用。命令采用华为风格，接口编号、默认优先级和特性支持需在实际设备上确认。拓扑均为按案例接线制作的eNSP风格示意图，不是模拟器实测截图。     路由基本概述为什么跨网段需要路由路由是指导IP报文转发的路径信息。主机把远端流量交给网关，网关再查询目的地址，决定下一跳和出接口。路由器、三层交换机、防火墙都可以承担三层转发。 **知道下一跳，不等于知道整条路径的所有设备。**每台路由设备按自己的表继续转发；请求能到达目标，也还要检查回复有没有路可走。 路由表先读一次查询结果1display ip routing-table  图1是一份路由表样例。先找目的网段，再看来源、下一跳和出接口，不要一开始就盯着优先级数字。  图 1 路由表查询样例  表 ...</div></div></div></a><a class="pagination-related" href="/2026/11/25/2026-11-25-datacom-05-vlan/" title="数通05：VLAN原理与配置"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-25-datacom-05-vlan-vlan-topology-generated.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">数通05：VLAN原理与配置</div></div><div class="info-2"><div class="info-item-1">办公室搬到了两层楼，每层都有一台交换机。行政和财务的电脑分散在两层：同部门要能互相访问，不同部门又要分开管理。难道要给每个部门各买一套交换机、各拉一条网线吗？ 不用。VLAN 就是解决这类问题的一种办法。 上一篇讲过，交换机会学习源 MAC，再按目的 MAC 转发。同一个广播域里的设备，还会收到广播和部分泛洪流量。这次要做的是：共用交换机，但让不同部门的广播各自留在自己的范围内。 VLAN 的中文名是“虚拟局域网”，主要用来划分二层广播域。下面从广播为什么需要隔离讲起，再看标签、接口类型和配置，最后把实验题与面试题一起整理。 说明：下面是可自行搭建的实验和预期结果，还没有在真机上实测。命令采用华为常见 VRP 写法，接口名用 GigabitEthernet0&#x2F;0&#x2F;x。实际操作时先核对型号、版本和接口名；已有业务的设备不要直接套用整段配置。     VLAN 的产生先看广播的去向A 想找同网段设备的 MAC，会先发 ARP 广播。如果大家都在一个大广播域里，财务电脑找打印机，行政电脑也会收到这份广播。交换机不知道目的 MAC 时，还会把未知单播复制到同 VLAN...</div></div></div></a></nav><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/touxiang.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">XBY</div><div class="author-info-description">这是一个未完成的博客</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">29</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">89</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">7</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/Ghib6"><i class="fab fa-github"></i><span>前往妙妙小屋</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/Ghib6" target="_blank" title="Github"><i class="fab fa-github"></i></a><a class="social-icon" href="https://mail.163.com/" target="_blank" title="Email"><i class="fa fa-envelope"></i></a><a class="social-icon" href="https://space.bilibili.com/324065498" target="_blank" title="bilibili"><i class="fab fa-bilibili"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">欢迎来到我的博客！</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BD%91%E7%BB%9C%E5%B1%82%E4%BD%9C%E7%94%A8"><span class="toc-number">1.</span> <span class="toc-text">网络层作用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#IP-%E5%9C%B0%E5%9D%80"><span class="toc-number">2.</span> <span class="toc-text">IP 地址</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%88%E6%9F%A5%E7%9C%8B%E7%BD%91%E5%8D%A1%EF%BC%8C%E5%86%8D%E6%8A%93%E4%B8%80%E6%AC%A1%E8%AE%BF%E9%97%AE"><span class="toc-number">2.1.</span> <span class="toc-text">先查看网卡，再抓一次访问</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8D%81%E8%BF%9B%E5%88%B6%E3%80%81%E5%8D%81%E5%85%AD%E8%BF%9B%E5%88%B6%E4%B8%8E%E4%BA%8C%E8%BF%9B%E5%88%B6"><span class="toc-number">2.2.</span> <span class="toc-text">十进制、十六进制与二进制</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AD%90%E7%BD%91%E6%8E%A9%E7%A0%81%E4%B8%8E%E5%9C%B0%E5%9D%80%E8%8C%83%E5%9B%B4%E8%AE%A1%E7%AE%97"><span class="toc-number">2.3.</span> <span class="toc-text">子网掩码与地址范围计算</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BA%94%E7%94%A8%E5%AE%9E%E9%AA%8C%EF%BC%9A%E4%B8%89%E7%BB%84%E6%8E%A9%E7%A0%81%E5%AF%B9%E7%85%A7"><span class="toc-number">2.4.</span> <span class="toc-text">应用实验：三组掩码对照</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BD%91%E5%85%B3%E5%AE%9E%E9%AA%8C%EF%BC%9A%E8%B7%A8%E7%BD%91%E6%AE%B5%E4%BA%92%E9%80%9A"><span class="toc-number">2.5.</span> <span class="toc-text">网关实验：跨网段互通</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#IP-%E5%9C%B0%E5%9D%80%E5%88%86%E7%B1%BB"><span class="toc-number">3.</span> <span class="toc-text">IP 地址分类</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%B8%E5%9E%8B%E5%88%86%E7%B1%BB%E4%B8%8E%E7%A7%81%E7%BD%91%E5%9C%B0%E5%9D%80"><span class="toc-number">3.1.</span> <span class="toc-text">典型分类与私网地址</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%89%B9%E6%AE%8A%E5%9C%B0%E5%9D%80"><span class="toc-number">3.2.</span> <span class="toc-text">特殊地址</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#IPv4-%E5%8D%8F%E8%AE%AE"><span class="toc-number">4.</span> <span class="toc-text">IPv4 协议</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8A%A5%E6%96%87%E5%AD%97%E6%AE%B5%E5%AF%B9%E7%85%A7"><span class="toc-number">4.1.</span> <span class="toc-text">报文字段对照</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%86%E7%89%87%E3%80%81TTL-%E4%B8%8E%E5%8D%8F%E8%AE%AE%E5%8F%B7"><span class="toc-number">4.2.</span> <span class="toc-text">分片、TTL 与协议号</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ARP-%E5%8D%8F%E8%AE%AE"><span class="toc-number">5.</span> <span class="toc-text">ARP 协议</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BB%8E%E7%9B%AE%E7%9A%84-IP-%E6%89%BE%E5%88%B0%E4%B8%8B%E4%B8%80%E8%B7%B3-MAC"><span class="toc-number">5.1.</span> <span class="toc-text">从目的 IP 找到下一跳 MAC</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ARP-%E4%BB%A3%E7%90%86"><span class="toc-number">5.2.</span> <span class="toc-text">ARP 代理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%8D%E8%B4%B9-ARP"><span class="toc-number">5.3.</span> <span class="toc-text">免费 ARP</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ICMP-%E5%8D%8F%E8%AE%AE"><span class="toc-number">6.</span> <span class="toc-text">ICMP 协议</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#ping-%E4%B8%8E-tracert-%E6%80%8E%E6%A0%B7%E8%A7%82%E5%AF%9F"><span class="toc-number">6.1.</span> <span class="toc-text">ping 与 tracert 怎样观察</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%87%8D%E5%AE%9A%E5%90%91%E4%B8%8E%E9%94%99%E8%AF%AF%E6%8A%A5%E5%91%8A"><span class="toc-number">6.2.</span> <span class="toc-text">重定向与错误报告</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%87%8D%E7%82%B9%E5%9B%9E%E9%A1%BE"><span class="toc-number">7.</span> <span class="toc-text">重点回顾</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%9E%E9%AA%8C%E8%AE%B0%E5%BD%95%E6%95%B4%E7%90%86"><span class="toc-number">7.1.</span> <span class="toc-text">实验记录整理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%9D%A2%E8%AF%95%E9%97%AE%E9%A2%98"><span class="toc-number">7.2.</span> <span class="toc-text">面试问题</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/11/27/2026-11-27-datacom-09-transport/" title="数通09：传输层"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-27-datacom-09-transport-handshake.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="数通09：传输层"/></a><div class="content"><a class="title" href="/2026/11/27/2026-11-27-datacom-09-transport/" title="数通09：传输层">数通09：传输层</a><time datetime="2026-11-27T13:44:54.000Z" title="发表于 2026-11-27 13:44:54">2026-11-27</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/11/27/2026-11-27-datacom-08-inter-vlan/" title="数通08：VLAN间通信"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-27-datacom-08-inter-vlan-vlanif.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="数通08：VLAN间通信"/></a><div class="content"><a class="title" href="/2026/11/27/2026-11-27-datacom-08-inter-vlan/" title="数通08：VLAN间通信">数通08：VLAN间通信</a><time datetime="2026-11-27T09:18:43.000Z" title="发表于 2026-11-27 09:18:43">2026-11-27</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/11/26/2026-11-26-datacom-07-ip-routing/" title="数通07：IP路由基础"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-26-datacom-07-ip-routing-table.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="数通07：IP路由基础"/></a><div class="content"><a class="title" href="/2026/11/26/2026-11-26-datacom-07-ip-routing/" title="数通07：IP路由基础">数通07：IP路由基础</a><time datetime="2026-11-26T15:08:40.000Z" title="发表于 2026-11-26 15:08:40">2026-11-26</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/11/26/2026-11-26-datacom-06-network-layer/" title="数通06：网络层实验"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-26-datacom-06-network-layer-labs.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="数通06：网络层实验"/></a><div class="content"><a class="title" href="/2026/11/26/2026-11-26-datacom-06-network-layer/" title="数通06：网络层实验">数通06：网络层实验</a><time datetime="2026-11-26T14:40:06.000Z" title="发表于 2026-11-26 14:40:06">2026-11-26</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/11/25/2026-11-25-datacom-05-vlan/" title="数通05：VLAN原理与配置"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-25-datacom-05-vlan-vlan-topology-generated.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="数通05：VLAN原理与配置"/></a><div class="content"><a class="title" href="/2026/11/25/2026-11-25-datacom-05-vlan/" title="数通05：VLAN原理与配置">数通05：VLAN原理与配置</a><time datetime="2026-11-25T08:50:00.000Z" title="发表于 2026-11-25 08:50:00">2026-11-25</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2020 - 2026 By XBY</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="translateLink" type="button" title="简繁转换">繁</button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="/js/tw_cn.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page/instantpage.min.js" type="module"></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js"></script><script src="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (false) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://hexo-twikoo.ghib6.com/',
+      region: '',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://hexo-twikoo.ghib6.com/',
+      region: '',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    GLOBAL_CONFIG_SITE.pageType === 'post' && getCount()
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script defer src="/js/light.js"></script><canvas id="universe"></canvas><script defer src="/js/universe.js"></script><script defer src="/js/cursor.js"></script><script defer src="/js/pjax-no-enter-animation.js?v=20260511"></script><script defer src="/js/webinfo-count.js?v=20260509"></script><script defer src="/js/post-admin-edit.js?v=20261125"></script><div class="aplayer no-destroy" data-id="1985708788" data-server="netease" data-type="song" data-fixed="true" data-mini="true" data-listFolded="false" data-order="random" data-preload="none" data-autoplay="false" muted></div><script id="canvas_nest" defer="defer" color="0,0,255" opacity="0.7" zIndex="-1" count="50" mobile="false" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/canvas-nest.min.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/activate-power-mode.min.js"></script><script>POWERMODE.colorful = true;
+POWERMODE.shake = true;
+POWERMODE.mobile = false;
+document.body.addEventListener('input', POWERMODE);
+</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/metingjs/dist/Meting.min.js"></script><script>(() => {
+  const destroyAplayer = () => {
+    if (window.aplayers) {
+      for (let i = 0; i < window.aplayers.length; i++) {
+        if (!window.aplayers[i].options.fixed) {
+          window.aplayers[i].destroy()
+        }
+      }
+    }
+  }
+
+  const runMetingJS = () => {
+    typeof loadMeting === 'function' && document.getElementsByClassName('aplayer').length && loadMeting()
+  }
+
+  btf.addGlobalFn('pjaxSend', destroyAplayer, 'destroyAplayer')
+  btf.addGlobalFn('pjaxComplete', loadMeting, 'runMetingJS')
+})()</script><script src="https://cdn.jsdelivr.net/npm/pjax/pjax.min.js"></script><script>(() => {
+  const pjaxSelectors = ["head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+  window.pjax = new Pjax({
+    elements: 'a:not([target="_blank"])',
+    selectors: pjaxSelectors,
+    cacheBust: false,
+    analytics: false,
+    scrollRestoration: false
+  })
+
+  const triggerPjaxFn = (val) => {
+    if (!val) return
+    Object.values(val).forEach(fn => {
+      try {
+        fn()
+      } catch (err) {
+        console.debug('Pjax callback failed:', err)
+      }
+    })
+  }
+
+  document.addEventListener('pjax:send', () => {
+    // removeEventListener
+    btf.removeGlobalFnEvent('pjaxSendOnce')
+    btf.removeGlobalFnEvent('themeChange')
+
+    // reset readmode
+    const $bodyClassList = document.body.classList
+    if ($bodyClassList.contains('read-mode')) $bodyClassList.remove('read-mode')
+
+    triggerPjaxFn(window.globalFn.pjaxSend)
+  })
+
+  document.addEventListener('pjax:complete', () => {
+    btf.removeGlobalFnEvent('pjaxCompleteOnce')
+    document.querySelectorAll('script[data-pjax]').forEach(item => {
+      const newScript = document.createElement('script')
+      const content = item.text || item.textContent || item.innerHTML || ""
+      Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+      newScript.appendChild(document.createTextNode(content))
+      item.parentNode.replaceChild(newScript, item)
+    })
+
+    triggerPjaxFn(window.globalFn.pjaxComplete)
+  })
+
+  document.addEventListener('pjax:error', e => {
+    if (e.request.status === 404) {
+      const usePjax = true
+      true
+        ? (usePjax ? pjax.loadUrl('/404.html') : window.location.href = '/404.html')
+        : window.location.href = e.request.responseURL
+    }
+  })
+})()</script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="local-search-input"><input placeholder="搜索文章" type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/js/local-search.js?v=20261125-space"></script></div></div><!-- hexo injector body_end start --><script defer src="/js/vendor/marked.js"></script><script defer src="/js/vendor/purify.js"></script><script defer src="/js/pet-assistant.js?v=20261127-stream-errors"></script><script data-pjax>
+  function butterfly_clock_anzhiyu_injector_config(){
+    var parent_div_git = document.getElementsByClassName('sticky_layout')[0];
+    var item_html = '<div class="card-widget card-clock"><div class="card-glass"><div class="card-background"><div class="card-content"><div id="hexo_electric_clock"><img class="entered loading" id="card-clock-loading" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.cbd.int/hexo-butterfly-clock-anzhiyu/lib/loading.gif" style="height: 120px; width: 100%;" data-ll-status="loading"/></div></div></div></div></div>';
+    console.log('已挂载butterfly_clock_anzhiyu')
+    if(parent_div_git) {
+      parent_div_git.insertAdjacentHTML("afterbegin",item_html)
+    }
+  }
+  var elist = 'null'.split(',');
+  var cpage = location.pathname;
+  var epage = '/';
+  var qweather_key = 'b16a1fa0e63c46a4b8f28abfb06ae3fe';
+  var gaud_map_key = 'e2b04289e870b005374ee030148d64fd&s=rsv3';
+  var baidu_ak_key = 'undefined';
+  var flag = 0;
+  var clock_rectangle = '113.34532,23.15624';
+  var clock_default_rectangle_enable = 'false';
+
+  for (var i=0;i<elist.length;i++){
+    if (cpage.includes(elist[i])){
+      flag++;
+    }
+  }
+
+  if ((epage ==='all')&&(flag == 0)){
+    butterfly_clock_anzhiyu_injector_config();
+  }
+  else if (epage === cpage){
+    butterfly_clock_anzhiyu_injector_config();
+  }
+  </script><script src="https://widget.qweather.net/simple/static/js/he-simple-common.js?v=2.0"></script><script data-pjax src="/js/electric-clock.js?v=20260509-ip"></script><script data-pjax>
+  function butterfly_footer_beautify_injector_config(){
+    var parent_div_git = document.getElementById('footer');
+    var item_html = '<div id="workboard"></div><p id="ghbdages"><a class="github-badge" target="_blank" href="https://hexo.io/" style="margin-inline:5px" data-title="博客框架为Hexo_v6.2.0" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Frame-Hexo-blue?style=flat&amp;logo=hexo" alt=""/></a><a class="github-badge" target="_blank" href="https://butterfly.js.org/" style="margin-inline:5px" data-title="主题版本Butterfly_v4.3.1" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Theme-Butterfly-6513df?style=flat&amp;logo=bitdefender" alt=""/></a><a class="github-badge" target="_blank" href="https://vercel.com/" style="margin-inline:5px" data-title="本站采用多线部署，主线路托管于Vercel" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Hosted-Vercel-brightgreen?style=flat&amp;logo=Vercel" alt=""/></a><a class="github-badge" target="_blank" href="https://dashboard.4everland.org/" style="margin-inline:5px" data-title="本站采用多线部署，备用线路托管于4EVERLAND" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Hosted-4EVERLAND-22DDDD?style=flat&amp;logo=IPFS" alt=""/></a><a class="github-badge" target="_blank" href="https://github.com/" style="margin-inline:5px" data-title="本站项目由Github托管" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Source-Github-d021d6?style=flat&amp;logo=GitHub" alt=""/></a><a class="github-badge" target="_blank" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" style="margin-inline:5px" data-title="本站采用知识共享署名-非商业性使用-相同方式共享4.0国际许可协议进行许可" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Copyright-BY--NC--SA%204.0-d42328?style=flat&amp;logo=Claris" alt=""/></a></p>';
+    console.log('已挂载butterfly_footer_beautify')
+    parent_div_git.insertAdjacentHTML("beforeend",item_html)
+    }
+  var elist = 'null'.split(',');
+  var cpage = location.pathname;
+  var epage = 'all';
+  var flag = 0;
+
+  for (var i=0;i<elist.length;i++){
+    if (cpage.includes(elist[i])){
+      flag++;
+    }
+  }
+
+  if ((epage ==='all')&&(flag == 0)){
+    butterfly_footer_beautify_injector_config();
+  }
+  else if (epage === cpage){
+    butterfly_footer_beautify_injector_config();
+  }
+  </script><script async src="/js/footer-runtime.js?v=20260509"></script><div class="js-pjax"><script async="async">var arr = document.getElementsByClassName('recent-post-item');
+for(var i = 0;i<arr.length;i++){
+    arr[i].classList.add('wow');
+    arr[i].classList.add('animate__zoomIn');
+    arr[i].setAttribute('data-wow-duration', '1s');
+    arr[i].setAttribute('data-wow-delay', '1s');
+    arr[i].setAttribute('data-wow-offset', '100');
+    arr[i].setAttribute('data-wow-iteration', '1');
+  }</script><script async="async">var arr = document.getElementsByClassName('card-widget');
+for(var i = 0;i<arr.length;i++){
+    arr[i].classList.add('wow');
+    arr[i].classList.add('animate__zoomIn');
+    arr[i].setAttribute('data-wow-duration', '');
+    arr[i].setAttribute('data-wow-delay', '');
+    arr[i].setAttribute('data-wow-offset', '');
+    arr[i].setAttribute('data-wow-iteration', '');
+  }</script></div><script defer src="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/wow.min.js"></script><script defer src="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/wow_init.js"></script><script async src="//at.alicdn.com/t/font_2032782_8d5kxvn09md.js"></script><script data-pjax src="https://npm.elemecdn.com/hexo-filter-gitcalendar/lib/gitcalendar.js"></script><script data-pjax>
+  function gitcalendar_injector_config(){
+      var parent_div_git = document.getElementById('gitZone');
+      var item_html = '<div class="recent-post-item" id="gitcalendarBar" style="width:100%;height:auto;padding:10px;"><style>#git_container{min-height: 280px}@media screen and (max-width:650px) {#git_container{min-height: 0px}}</style><div id="git_loading" style="width:10%;height:100%;margin:0 auto;display: block;"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 50 50" style="enable-background:new 0 0 50 50" xml:space="preserve"><path fill="#d0d0d0" d="M25.251,6.461c-10.318,0-18.683,8.365-18.683,18.683h4.068c0-8.071,6.543-14.615,14.615-14.615V6.461z" transform="rotate(275.098 25 25)"><animatetransform attributeType="xml" attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.6s" repeatCount="indefinite"></animatetransform></path></svg><style>#git_container{display: none;}</style></div><div id="git_container"></div></div>';
+      parent_div_git.insertAdjacentHTML("afterbegin",item_html)
+      console.log('已挂载gitcalendar')
+      }
+
+    if( document.getElementById('gitZone') && (location.pathname ==='/about/'|| '/about/' ==='all')){
+        gitcalendar_injector_config()
+        GitCalendarInit("https://gh-calendar.rschristian.dev/user/Ghib6",['#d9e0df', '#c6e0dc', '#a8dcd4', '#9adcd2', '#89ded1', '#77e0d0', '#5fdecb', '#47dcc6', '#39dcc3', '#1fdabe', '#00dab9'],'Ghib6')
+    }
+  </script><!-- hexo injector body_end end --><script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"debug":false,"model":{"jsonPath":"/live2dw/assets/wanko.model.json"},"display":{"position":"left","width":150,"height":300},"mobile":{"show":false},"log":false});</script></body></html>

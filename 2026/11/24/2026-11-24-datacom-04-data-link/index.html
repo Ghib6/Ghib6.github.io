@@ -1,0 +1,834 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>数通04：数据链路层 | Ghib6</title><meta name="author" content="XBY"><meta name="copyright" content="XBY"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="ffffff"><meta name="description" content="从电脑第一次向打印机发送数据出发，理解以太网帧、MAC 地址、冲突域与广播域，以及交换机的学习、转发和泛洪过程。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="数通04：数据链路层">
+<meta property="og:url" content="https://www.ghib6.com/2026/11/24/2026-11-24-datacom-04-data-link/index.html">
+<meta property="og:site_name" content="Ghib6">
+<meta property="og:description" content="从电脑第一次向打印机发送数据出发，理解以太网帧、MAC 地址、冲突域与广播域，以及交换机的学习、转发和泛洪过程。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://picbed.ghib6.com/img/posts/2026-11-24-datacom-04-data-link-switch-learning-generated.png">
+<meta property="article:published_time" content="2026-11-24T17:28:00.000Z">
+<meta property="article:modified_time" content="2026-11-25T10:28:09.000Z">
+<meta property="article:author" content="XBY">
+<meta property="article:tag" content="MAC地址">
+<meta property="article:tag" content="交换机">
+<meta property="article:tag" content="以太网">
+<meta property="article:tag" content="广播域">
+<meta property="article:tag" content="数据链路层">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://picbed.ghib6.com/img/posts/2026-11-24-datacom-04-data-link-switch-learning-generated.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "数通04：数据链路层",
+  "url": "https://www.ghib6.com/2026/11/24/2026-11-24-datacom-04-data-link/",
+  "image": "https://picbed.ghib6.com/img/posts/2026-11-24-datacom-04-data-link-switch-learning-generated.png",
+  "datePublished": "2026-11-24T17:28:00.000Z",
+  "dateModified": "2026-11-25T10:28:09.000Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "XBY",
+      "url": "https://www.ghib6.com"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/moon.jpg"><link rel="canonical" href="https://www.ghib6.com/2026/11/24/2026-11-24-datacom-04-data-link/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.css" media="print" onload="this.media='all'"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!true && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', 'ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          const hour = new Date().getHours()
+          const isNight = hour <= 6 || hour >= 18
+          if (theme === undefined) isNight ? activateDarkMode() : activateLightMode()
+          else theme === 'light' ? activateLightMode() : activateDarkMode()
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":true,"top_n_per_article":1,"unescape":false,"pagination":{"enable":true,"hitsPerPage":8},"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: {"defaultEncoding":2,"translateDelay":0,"msgToTraditionalChinese":"繁","msgToSimplifiedChinese":"简"},
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: true,
+    post: true
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: {"chs_to_cht":"已切换为繁体中文","cht_to_chs":"已切换为简体中文","day_to_night":"已切换为深色模式","night_to_day":"已切换为浅色模式","bgLight":"#49b1f5","bgDark":"#1f1f1f","position":"top-right"},
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: true,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '数通04：数据链路层',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="stylesheet" href="/css/custom.css" media="defer" onload="this.media='all'"><link rel="stylesheet" href="/css/custom.css"><link rel="stylesheet" href="/css/universe.css"><link rel="stylesheet" href="/css/progress_bar.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end start --><link rel="stylesheet" href="/css/pet-assistant.css?v=20261127-stream"><link rel="stylesheet" href="https://cdn.cbd.int/hexo-butterfly-clock-anzhiyu/lib/clock.min.css" /><link rel="stylesheet" href="/css/footer-runtime.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/animate.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-butterfly-tag-plugins-plus@latest/lib/assets/font-awesome-animation.min.css" media="defer" onload="this.media='all'"><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-butterfly-tag-plugins-plus@latest/lib/tag_plugins.css" media="defer" onload="this.media='all'"><script src="https://npm.elemecdn.com/hexo-butterfly-tag-plugins-plus@latest/lib/assets/carousel-touch.js"></script><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-filter-gitcalendar/lib/gitcalendar.css" media="print" onload="this.media='all'"><!-- hexo injector head_end end --><meta name="generator" content="Hexo 8.0.0"></head><body><div id="web_bg" style="background-image: url(https://picbed.ghib6.com/img/15.jpg);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/touxiang.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">29</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">89</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">7</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fa fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fa fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fa fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fa fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><span class="site-page group hide"><i class="fa-fw fa fa-list"></i><span> 列表</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fa fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fa fa-video"></i><span> 电影</span></a></li><li><a class="site-page child" target="_blank" rel="noopener" href="https://graph.ghib6.com/"><i class="fa-fw fa fa-project-diagram"></i><span> 思维导图</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/comments/"><i class="fa-fw fa fa-envelope-open"></i><span> 留言板</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fa fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(https://picbed.ghib6.com/img/posts/2026-11-24-datacom-04-data-link-switch-learning-generated.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Ghib6</span></a><a class="nav-page-title" href="/"><span class="site-name">数通04：数据链路层</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fa fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fa fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fa fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fa fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><span class="site-page group hide"><i class="fa-fw fa fa-list"></i><span> 列表</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fa fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fa fa-video"></i><span> 电影</span></a></li><li><a class="site-page child" target="_blank" rel="noopener" href="https://graph.ghib6.com/"><i class="fa-fw fa fa-project-diagram"></i><span> 思维导图</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/comments/"><i class="fa-fw fa fa-envelope-open"></i><span> 留言板</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fa fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">数通04：数据链路层</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-11-24T17:28:00.000Z" title="发表于 2026-11-24 17:28:00">2026-11-24</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-11-25T10:28:09.000Z" title="更新于 2026-11-25 10:28:09">2026-11-25</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%95%B0%E9%80%9A%E5%9F%BA%E7%A1%80/">数通基础</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">8k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>24分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span><span class="post-meta-separator">|</span><span class="post-meta-commentcount"><i class="far fa-comments fa-fw post-meta-icon"></i><span class="post-meta-label">评论数:</span><a href="/2026/11/24/2026-11-24-datacom-04-data-link/#post-comment"><span id="twikoo-count"><i class="fa-solid fa-spinner fa-spin"></i></span></a></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-11-25 10:28:09&quot;}" hidden></div><p><a href="/2026/11/24/2026-11-24-datacom-03-physical-layer/">上一篇</a>确认了物理链路。现在，办公室电脑 A 和打印机 B 都已接入交换机，接口状态正常，电脑准备向打印机发送数据。</p>
+<p>交换机上还有同事的电脑 C。A 发出的内容应该交给 B，那么交换机怎样知道 B 接在哪个端口？刚启动时没有记录，又该怎样处理？</p>
+<p>**数据链路层把比特组织成帧，提供当前链路上的寻址与交付机制；以太网交换机则利用 MAC 地址决定帧从哪里转发。**下面依次学习数据链路层、局域网技术、以太网和以太网交换机，再用面试问题回顾整条通信过程。</p>
+<div class="note info simple"><p>说明：下文使用教学情景，不是已执行的实测记录。A、B、C 分别连接 P1、P2、P3，均处于 VLAN 10，端口允许转发且没有额外过滤策略。先假设 A 已经知道 B 的 MAC 地址，将地址解析问题与交换过程分开。</p>
+</div>
+
+
+
+
+<span id="more"></span>
+
+<h2 id="数据链路层"><a href="#数据链路层" class="headerlink" title="数据链路层"></a>数据链路层</h2><p>物理层负责传输比特，数据链路层进一步规定如何识别一段完整的数据、接收方如何判断帧是否属于自己，以及如何检测部分传输错误。</p>
+<h3 id="数据链路层的作用"><a href="#数据链路层的作用" class="headerlink" title="数据链路层的作用"></a>数据链路层的作用</h3><p>以太网帧包含目的 MAC、源 MAC、类型或长度信息、载荷以及帧校验序列 FCS 等字段。帧结构让接收方能够按规则解释内容；FCS 用于检测传输中出现的错误。</p>
+<p>**差错检测不等于可靠交付。**以太网 MAC 层不会因为接收端发现 FCS 错误，就提供一套逐帧确认、重传机制。需要可靠交付的业务，可由 TCP 等其他层次的协议提供相应能力。</p>
+<div class="note info simple"><p>注：数据链路层是职责分类，不同技术提供的服务不同。不能把某一种链路协议的确认、重传或流量控制能力，当成所有数据链路层协议都具有的保证。</p>
+</div>
+
+<h3 id="链路管理与流量控制的边界"><a href="#链路管理与流量控制的边界" class="headerlink" title="链路管理与流量控制的边界"></a>链路管理与流量控制的边界</h3><p>成帧、差错处理、流量控制与链路管理，是理解数据链路层时需要区分的几类任务。成帧决定内容怎样组织，差错处理决定如何面对损坏，流量控制关注接收能力，链路管理关注相邻节点间连接的建立、维持与释放。</p>
+<p>这些是职责维度，不代表每种链路技术都提供同一种可靠性承诺。以太网 FCS 检错后丢弃损坏帧，并不会因此自动完成可靠重传；无线链路和其他协议的确认机制也不能机械地移植到所有以太网场景。</p>
+<p>回到打印情景：电脑到交换机、交换机到打印机分别是相邻的链路；如果目标改为跨网络服务器，路由器还会重新处理出站链路封装。<strong>二层处理服务于当前链路或桥接范围，不负责替代网络层寻找任意远端网络。</strong></p>
+<h2 id="局域网技术"><a href="#局域网技术" class="headerlink" title="局域网技术"></a>局域网技术</h2><h3 id="局域网技术标准"><a href="#局域网技术标准" class="headerlink" title="局域网技术标准"></a>局域网技术标准</h3><p>IEEE 802 标准族包含多种局域网与桥接技术。当前学习中先区分表 1 的几个名字。</p>
+<p style="text-align: center;"><small>表 1 常见 IEEE 802 标准</small></p>
+
+<table>
+<thead>
+<tr>
+<th>标准</th>
+<th>关注范围</th>
+<th>学习时如何区分</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>IEEE 802.3</td>
+<td>以太网 MAC 与物理层等规范</td>
+<td>有线以太网的重要标准族，不只涉及早期冲突检测</td>
+</tr>
+<tr>
+<td>IEEE 802.11</td>
+<td>无线局域网 MAC 与物理层规范</td>
+<td>Wi-Fi 相关技术不能直接套用以太网的全部规则</td>
+</tr>
+<tr>
+<td>IEEE 802.1Q</td>
+<td>桥接网络与 VLAN 等机制</td>
+<td>理解 VLAN、交换与桥接的重要基础</td>
+</tr>
+<tr>
+<td>IEEE 802.2</td>
+<td>LLC，即逻辑链路控制</td>
+<td>理解传统 LLC 封装时会遇到的名称</td>
+</tr>
+</tbody></table>
+<p>在 IEEE 802 体系中，可以用 LLC 与 MAC 两个子层理解数据链路层的职责划分；但不能据此认定每个以太网帧都包含独立的 LLC 头。Ethernet II 直接用 EtherType 标识上层协议，后面会作对照。</p>
+<p>IEEE 对 <a target="_blank" rel="noopener" href="https://standards.ieee.org/ieee/802.1q/10323/">802.1Q 的说明</a>覆盖 MAC 桥、VLAN 桥及相关管理与协议，因此它的范围也不只是“给帧插入一个标签”。</p>
+<h3 id="数据链路层的子层"><a href="#数据链路层的子层" class="headerlink" title="数据链路层的子层"></a>数据链路层的子层</h3><p>LLC 可以看作面向上层服务的一侧，MAC 则处理当前介质上的成帧、寻址和访问规则。二者是职责分工，不是“两张网卡”，更不是每经过一个子层都在帧尾再加一个 FCS。</p>
+<p>例如，Ethernet II 将 IPv4 数据放在以太网头之后，通过 EtherType 表示载荷协议；802.3 + LLC 形式先用长度字段表达后续内容长度，再使用 LLC 等标识解释后面的数据。理解子层时，要同时看协议分工与实际字节结构，不能只背一张分层图。</p>
+<h3 id="MAC-地址基础概念"><a href="#MAC-地址基础概念" class="headerlink" title="MAC 地址基础概念"></a>MAC 地址基础概念</h3><h4 id="格式与地址类型"><a href="#格式与地址类型" class="headerlink" title="格式与地址类型"></a>格式与地址类型</h4><p>常见以太网 MAC 地址长 48 位，也就是 6 字节，可写成 <code>02:00:00:00:00:0A</code> 或 <code>0200-0000-000A</code>。两种写法只是分隔方式不同。</p>
+<p>本篇使用以下本地管理的单播地址作为示例：</p>
+<ul>
+<li>电脑 A：<code>02:00:00:00:00:0A</code>，连接 P1。</li>
+<li>打印机 B：<code>02:00:00:00:00:0B</code>，连接 P2。</li>
+<li>电脑 C：<code>02:00:00:00:00:0C</code>，连接 P3。</li>
+</ul>
+<p>MAC 既可以由厂商分配，也可以由软件配置或采用随机化机制。<strong>它不是永远不可修改的设备身份证，也不能单靠地址证明设备身份。</strong></p>
+<p style="text-align: center;"><small>表 2 目的 MAC 的三种基本类型</small></p>
+
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>含义</th>
+<th>示例或识别方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>单播</td>
+<td>标识单个接收端点</td>
+<td>本文 A、B、C 的地址</td>
+</tr>
+<tr>
+<td>组播</td>
+<td>标识一组接收端点</td>
+<td>首字节最低位为 1，广播地址是特殊的全 1 地址</td>
+</tr>
+<tr>
+<td>广播</td>
+<td>面向当前广播域</td>
+<td><code>FF:FF:FF:FF:FF:FF</code></td>
+</tr>
+</tbody></table>
+<p>首字节的最低位用于区分单个与组地址，次低位表示全局管理或本地管理。<code>02</code> 的二进制形式是 <code>00000010</code>，因此本文示例属于本地管理单播地址。</p>
+<div class="note info simple"><p>注：传统厂商分配地址常通过 OUI 等前缀查询注册组织。本地管理、随机化地址不能直接按同样方式判断厂商；即使查到了注册组织，也不能据此确认设备型号或实际使用者。</p>
+</div>
+
+<h4 id="十六进制怎样读"><a href="#十六进制怎样读" class="headerlink" title="十六进制怎样读"></a>十六进制怎样读</h4><p>一个十六进制数字表示 4 个二进制位，两个数字组成一个字节。<code>02:00:00:00:00:0A</code> 一共 12 个十六进制数字，因此是 48 位，而不是“12 位地址”。判断单播或组播时，看的是第一个字节的最低位，不是整个地址最后一位。</p>
+<p>以 <code>01:00:5E:00:00:01</code> 为例，第一个字节 <code>01</code> 的最低位是 1，属于组地址；<code>02</code> 的最低位是 0、次低位是 1，表示本地管理的单个地址。广播地址的 48 位全部为 1，写成冒号、短横线或四位一组的格式，数值含义都不变。</p>
+<p>如果同一二层网络出现重复使用的单播 MAC，交换机看到同一地址轮流从不同端口进入，表项位置便会反复变化，影响流量交付。因此，软件能够修改 MAC，并不等于可以在同一个网络中随意复用别人的地址。</p>
+<h4 id="MAC-与-IP-的分工"><a href="#MAC-与-IP-的分工" class="headerlink" title="MAC 与 IP 的分工"></a>MAC 与 IP 的分工</h4><p>IP 用于网络层的逻辑寻址与跨网络转发，MAC 用于以太网当前链路上的交付。A 与 B 在本例中直接进行同网段通信，A 发出的帧使用 B 的 MAC 作为目的地址。</p>
+<p>如果 A 改为访问远端网络，首跳帧的目的 MAC 将指向所选下一跳路由器，而不是远端服务器。<strong>帧要交给谁，与 IP 包最终要去哪里，是两个不同的问题。</strong></p>
+<h2 id="以太网"><a href="#以太网" class="headerlink" title="以太网"></a>以太网</h2><h3 id="以太网的发展"><a href="#以太网的发展" class="headerlink" title="以太网的发展"></a>以太网的发展</h3><p>早期总线型以太网和集线器把设备连接到共享介质，发送方需要考虑别人是否也在发送。交换式以太网则把帧的中继工作交给交换机，各端口之间按转发表连接，现代全双工点到点连接不再靠碰撞退避来争抢介质。</p>
+<p>速率名称也要分清：10 Mb&#x2F;s 是十兆，100 Mb&#x2F;s 是百兆，1000 Mb&#x2F;s 等于 1 Gb&#x2F;s，也就是千兆；10 Gb&#x2F;s 才是万兆。<strong>万兆不等于 1G，速率提高也不意味着以太网的二层寻址规则变成了 IP 查表。</strong></p>
+<p>常见技术名称包括铜缆千兆 1000BASE-T 和光纤千兆 1000BASE-X。它们的物理实现不同，但学习交换转发时仍围绕 MAC、VLAN 与接口展开。旧资料中的 802.3ad 指向链路聚合的历史，现行标准体系可查 <a target="_blank" rel="noopener" href="https://standards.ieee.org/ieee/149/6768/">IEEE 802.1AX</a>，不要把所有历史修订号当成今天互不相干的新协议。</p>
+<h3 id="共享式以太网与-CSMA-CD"><a href="#共享式以太网与-CSMA-CD" class="headerlink" title="共享式以太网与 CSMA&#x2F;CD"></a>共享式以太网与 CSMA&#x2F;CD</h3><p>共享半双工介质上，一个节点开始发送前需要监听介质；发送过程中检测到碰撞，就停止本次正常帧发送，并按照退避规则等待后重试。可以用“先听后发、边发边检测、碰撞停止、退避重试”串起过程。</p>
+<p>这里的检测对象是共享介质上的碰撞，不是拿 MAC 表查询冲突，也不是用 ARP 确认线路空闲。多个节点同时听到“空闲”后仍可能同时发送，所以监听不能消除所有碰撞，才需要后续检测与退避。</p>
+<h3 id="全双工链路还会冲突吗"><a href="#全双工链路还会冲突吗" class="headerlink" title="全双工链路还会冲突吗"></a>全双工链路还会冲突吗</h3><p><strong>正常工作的全双工点到点以太网链路不发生共享式以太网的碰撞，也不使用 CSMA&#x2F;CD 争用机制。</strong></p>
+<p>集线器时代，多个节点共享半双工介质，两个节点同时发送会发生碰撞，因此使用 CSMA&#x2F;CD 协调。交换机将各端口连接分开；若某端口后面仍接半双工共享网段，该网段仍有自己的冲突域。</p>
+<p>“交换机隔离冲突域”是理解拓扑的说法，不等于现代全双工端口每天仍在发生正常的帧碰撞。</p>
+<h3 id="广播能跨越哪里"><a href="#广播能跨越哪里" class="headerlink" title="广播能跨越哪里"></a>广播能跨越哪里</h3><p>**在本篇限定的普通二层转发中，广播域由 VLAN 划分。**同一 VLAN 可以跨越多台交换机，一台交换机也可以承载多个 VLAN，因此不能说“一台交换机永远只有一个广播域”。</p>
+<p>普通二层交换不会把 VLAN 10 的广播直接扩散到 VLAN 20。不同 VLAN 的主机要进行 IP 通信，需要相应的三层转发能力。VLAN 的具体配置留到下一篇展开。</p>
+<h3 id="用拓扑分别数清楚"><a href="#用拓扑分别数清楚" class="headerlink" title="用拓扑分别数清楚"></a>用拓扑分别数清楚</h3><p>图 1 将两个概念放在一起：冲突与共享的半双工介质有关，广播范围则随 VLAN 和二层转发边界划分。它们不是同一个集合，不能都用“交换机有几个端口”直接得出结论。</p>
+<p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-24-datacom-04-data-link-network-domains-generated.png" alt="集线器共享半双工介质与交换机全双工连接的区别，以及 VLAN10 和 VLAN20 的广播范围"></p>
+<p style="text-align: center;"><small>图 1 共享介质与广播边界</small></p>
+
+<p>假设一台交换机的 P1、P2 属于 VLAN 10，P3、P4 属于 VLAN 20，则有两个 VLAN 广播域。P1 收到 VLAN 10 的普通广播，只能在符合转发条件的 VLAN 10 范围传播，不会因为 P3 也在同一机箱上就复制过去。</p>
+<p>再假设 P2 连接一个集线器，集线器后有三台半双工主机。它们共享一个冲突域，而不是按主机数量分成三个。若 P1 连接全双工电脑，则 P1 链路不参与该共享网段的碰撞；两个端口是否属于同一广播域，仍要看 VLAN。</p>
+<div class="note warning simple"><p>注：在共享介质上，多个终端听到同一份信号，不代表每份帧都是广播帧。即使目的 MAC 是 B，其他终端也可在介质上接收到信号，再按接收规则过滤。区分“物理上听到”和“广播地址”，是避免概念混淆的关键。</p>
+</div>
+
+<h3 id="二层环路为什么会放大泛洪"><a href="#二层环路为什么会放大泛洪" class="headerlink" title="二层环路为什么会放大泛洪"></a>二层环路为什么会放大泛洪</h3><p>如果交换机之间形成没有被控制机制阻断的二层环路，广播和未知单播的复制流量可以沿环路反复传播。以太网帧头没有像 IP TTL 那样逐跳递减的通用字段，因此不能期待它自己绕几圈就停止。</p>
+<p>反复复制会消耗链路与设备资源，同一源地址也会从不同方向进入，造成 MAC 表项抖动。生成树等机制用于控制这类冗余拓扑；本篇先理解“泛洪为什么需要无环的有效转发路径”，后面再学习具体协议。</p>
+<h3 id="以太网帧格式"><a href="#以太网帧格式" class="headerlink" title="以太网帧格式"></a>以太网帧格式</h3><p>不带 VLAN 标签的基本帧结构如图 2 所示。先识别地址，再看类型和载荷，最后理解校验字段。</p>
+<p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-24-datacom-04-data-link-ethernet-frame-generated.png" alt="基本以太网帧包含目的 MAC、源 MAC、类型、数据与填充及 FCS，并对照类型与长度两种解释"></p>
+<p style="text-align: center;"><small>图 2 基本以太网帧结构</small></p>
+
+<p>图中基本帧从目的 MAC 到 FCS 为 64—1518 字节，数据与填充合计为 46—1500 字节。这个范围不包含前导码、帧起始定界符及帧间隙；带 VLAN 标签或其他扩展的帧需要另行计算。</p>
+<div class="note info simple"><p>注：网卡和驱动可能在抓包前移除 FCS，因此抓包窗口没有显示 FCS，不代表线上帧没有校验字段。图块宽度不代表实际字节比例。</p>
+</div>
+
+<h4 id="类型与长度怎样区分"><a href="#类型与长度怎样区分" class="headerlink" title="类型与长度怎样区分"></a>类型与长度怎样区分</h4><p>源 MAC 后的两个字节具有不同解释方式，判据见表 3。</p>
+<p style="text-align: center;"><small>表 3 Length/Type 字段判据</small></p>
+
+<table>
+<thead>
+<tr>
+<th>字段值</th>
+<th>解释方式</th>
+<th>后续如何识别协议</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>小于等于 1500</td>
+<td>按长度解释，常见于 802.3 + LLC 封装</td>
+<td>再通过 LLC、必要时结合 SNAP 等标识</td>
+</tr>
+<tr>
+<td>大于等于 1536，即 <code>0x0600</code></td>
+<td>按 EtherType 解释，即常说的 Ethernet II 形式</td>
+<td>如 <code>0x0800</code> 为 IPv4，<code>0x0806</code> 为 ARP</td>
+</tr>
+<tr>
+<td>1501—1535</td>
+<td>不作为上述普通长度或 EtherType 使用</td>
+<td>不把这段空隙误判成合法类型范围</td>
+</tr>
+</tbody></table>
+<p>以上边界可对照 IEEE 的 <a target="_blank" rel="noopener" href="https://standards.ieee.org/wp-content/uploads/import/documents/tutorials/ethertype.pdf">EtherType 使用说明</a>。两种封装的关键差别是协议标识方式，不能用“Ethernet II 只适合大数据、LLC 只适合小数据”来判断。</p>
+<h4 id="两种封装放在一起看"><a href="#两种封装放在一起看" class="headerlink" title="两种封装放在一起看"></a>两种封装放在一起看</h4><p>如图 3 所示，LLC&#x2F;MAC 的职责划分与具体帧格式需要分别理解。Ethernet II 的载荷可直接由 EtherType 标识；另一条路径在 Length 后使用 LLC，某些封装还增加 SNAP。</p>
+<p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-24-datacom-04-data-link-llc-mac-generated.png" alt="LLC 与 MAC 子层的职责以及 Ethernet II 和带 LLC 帧的封装路径"></p>
+<p style="text-align: center;"><small>图 3 子层职责与封装路径</small></p>
+
+<p>LLC 基本头包含 DSAP、SSAP 和控制字段，分别帮助标识服务访问点与相关控制信息；SNAP 扩展还能携带组织标识及协议标识。入门时首先要确认当前帧走的是哪种封装，不能在 EtherType 后面凭空补出一段不存在的 LLC。</p>
+<p>对于不带标签的基本帧，若载荷只有 20 字节，需要填充到 46 字节，才满足 64 字节最小帧长：<code>6 + 6 + 2 + 46 + 4 = 64</code>。若载荷为 1500 字节，基本帧为 <code>6 + 6 + 2 + 1500 + 4 = 1518</code> 字节。<strong>1500 字节描述的是常见载荷上限，不能直接当成整个帧的长度。</strong></p>
+<div class="note info simple"><p>注：前导码和帧起始定界符协助物理接收与帧起始识别，帧间隙用于间隔相邻发送。它们不计入上面的 64—1518 字节。不要将抓包文件显示的长度、IP 长度和线上占用时间直接混算。</p>
+</div>
+
+<h2 id="以太网交换机"><a href="#以太网交换机" class="headerlink" title="以太网交换机"></a>以太网交换机</h2><h3 id="先学习源，再查目的"><a href="#先学习源，再查目的" class="headerlink" title="先学习源，再查目的"></a>先学习源，再查目的</h3><p>对于本篇的普通二层学习交换过程，记住一句话：<strong>从源 MAC 学习位置，按目的 MAC 查表转发。</strong></p>
+<p>动态表项将 MAC、VLAN 与接口关联起来。它记录的是“从哪个接口可以到达这个 MAC”，不保证对方直接插在该端口上；端口后面还可以连接另一台交换机。</p>
+<p>动态表项会随收到的源流量更新，也会按老化规则删除。交换机不是在网线插入时就自动知道终端 MAC；必须观察到可用于学习的入站帧，才能建立相应动态记录。<a target="_blank" rel="noopener" href="https://www.cisco.com/c/en/us/td/docs/switches/metro/me3600x_3800x/trash/swadmin.html">Cisco 的 MAC 表说明</a>也将源地址学习与 VLAN 关联作为基本机制。</p>
+<h3 id="硬件转发与地址表"><a href="#硬件转发与地址表" class="headerlink" title="硬件转发与地址表"></a>硬件转发与地址表</h3><p>交换机的数据平面承担接收、查表、缓存与发送等工作，许多设备使用 ASIC 等专用硬件完成高速转发。MAC 转发表常称为 FDB，即转发数据库。理解工作原理时，应把“表中有哪些记录”和“硬件根据记录执行什么动作”分开。</p>
+<p>设备的管理 IP 用于管理或相应三层功能，普通二层转发并不要求每经过一台交换机就把目的 IP 改成该交换机的管理地址。只要满足相应转发条件，二层交换机可以交换载荷中的 IPv4、IPv6 等不同协议数据。</p>
+<p>一个端口也可以学到多个 MAC。例如 P3 连接另一台交换机，后面接 C、D，两台主机的流量都从 P3 进入，本机便可记录 <code>C → P3</code> 和 <code>D → P3</code>。这表示可达方向相同，不表示两台主机具有同一个地址。</p>
+<h3 id="三次传输走一遍"><a href="#三次传输走一遍" class="headerlink" title="三次传输走一遍"></a>三次传输走一遍</h3><p>先让 MAC 表为空，且 A 已知 B 的目的地址。A 发出第一帧后，交换机学习和转发的变化如图 4 所示。</p>
+<p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-24-datacom-04-data-link-switch-learning-generated.png" alt="终端 A 首次发给 B 时学习 A 并泛洪，B 回复时学习 B，之后 A 到 B 按表定向转发"></p>
+<p style="text-align: center;"><small>图 4 MAC 学习与转发过程</small></p>
+
+<div class="timeline "><div class='timeline-item headline'>
+        <div class='timeline-item-title'>
+          <div class='item-circle'><p>一次通信中的表项变化</p>
+</div>
+        </div>
+      </div><div class='timeline-item'>
+        <div class='timeline-item-title'>
+          <div class='item-circle'><p>A 首次发送给 B</p>
+</div>
+        </div>
+        <div class='timeline-item-content'><p>从 P1 收到帧，源地址是 A，交换机学习 VLAN 10 中的 <code>A → P1</code>。目的地址 B 尚未查到，因此向 VLAN 10 中允许转发的 P2、P3 泛洪，不发回 P1。</p>
+</div>
+      </div><div class='timeline-item'>
+        <div class='timeline-item-title'>
+          <div class='item-circle'><p>B 回复给 A</p>
+</div>
+        </div>
+        <div class='timeline-item-content'><p>B 的回复从 P2 进入，交换机学习 <code>B → P2</code>。此时已经知道 A 位于 P1，所以只向 P1 转发该单播帧。</p>
+</div>
+      </div><div class='timeline-item'>
+        <div class='timeline-item-title'>
+          <div class='item-circle'><p>A 再次发送给 B</p>
+</div>
+        </div>
+        <div class='timeline-item-content'><p>交换机刷新 A 的源地址学习信息，查到 B 位于 P2，只向 P2 转发。C 所在的 P3 不再收到这份已知单播流量。</p>
+</div>
+      </div></div>
+
+<p>第一次泛洪时，C 的端口会收到一份目的地址仍是 B 的帧。普通终端 C 不会把它作为发给自己的单播交付应用；泛洪也不会自动让交换机学到 C，只有观察到以 C 为源的有效流量才有学习依据。</p>
+<div class="note warning simple"><p>注：未知单播泛洪不会把目的 MAC 改成广播地址。它只是复制原帧到允许的出端口。本文限定在同一 VLAN 的普通学习转发场景；端口隔离、生成树状态或安全策略会进一步限制允许的出端口。</p>
+</div>
+
+<h3 id="三种基本处理行为"><a href="#三种基本处理行为" class="headerlink" title="三种基本处理行为"></a>三种基本处理行为</h3><p style="text-align: center;"><small>表 4 普通二层帧的处理分支</small></p>
+
+<table>
+<thead>
+<tr>
+<th>观察到的条件</th>
+<th>处理结论</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>目的单播地址已知，出接口不同于入接口</td>
+<td>向查到的接口定向转发</td>
+</tr>
+<tr>
+<td>目的单播地址未知</td>
+<td>向同 VLAN 的合格出接口泛洪，排除入接口</td>
+</tr>
+<tr>
+<td>收到广播帧</td>
+<td>在同 VLAN 范围内按允许的出接口泛洪，排除入接口</td>
+</tr>
+<tr>
+<td>目的单播地址对应接口就是入接口</td>
+<td>过滤该帧，不向同一接口重复转发</td>
+</tr>
+</tbody></table>
+<p>组播还有成员学习与侦听等机制，本篇不将它统一归为“向所有端口发”。</p>
+<h3 id="把处理行为落到端口"><a href="#把处理行为落到端口" class="headerlink" title="把处理行为落到端口"></a>把处理行为落到端口</h3><p>将观察点固定为 P2，如图 5 所示，同一个入端口可以对应三种不同结果。决定差别的是目的地址是否已知，以及查到的出接口在哪里。</p>
+<p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-24-datacom-04-data-link-forwarding-actions-generated.png" alt="帧从 P2 进入时，未知目的泛洪至 P1 P3 P4，已知 P4 时定向转发，已知 P2 时过滤"></p>
+<p style="text-align: center;"><small>图 5 三种帧处理行为</small></p>
+
+<p>交换机收到广播帧，也可以从其中合法的单播源地址学习发送者的位置。**“目的地址不需要单播查表”不等于“这一帧不能用于源地址学习”。**源学习与目的转发判断是两个问题。</p>
+<h3 id="表项会刷新、老化和迁移"><a href="#表项会刷新、老化和迁移" class="headerlink" title="表项会刷新、老化和迁移"></a>表项会刷新、老化和迁移</h3><p>A 持续发送有效流量时，其动态表项会刷新；超过老化条件未再观察到相应源流量，动态记录会被删除。记录删除后，下一份发往 A 的未知单播会重新触发允许范围内的泛洪；A 再发送时重新学习。<a target="_blank" rel="noopener" href="https://www.cisco.com/c/en/us/td/docs/switches/lan/c9000/lyr2-fwd/cdp-lldp-mac-udld/cdp-lldp-mac-udld-configuration-guide/configure-mac.html">Cisco 的 MAC 学习与老化说明</a>给出了这些基本行为。</p>
+<p>A 从 P1 移到 P3 后，只要交换机在 P3 观察到可学习的 A 源地址流量，普通动态学习会更新位置。若同一地址在多个端口间持续快速变化，应记录时间、VLAN 与接口，再检查重复地址、二层环路或连接变动，不能仅凭一次正常换口就宣布网络存在环路。</p>
+<p>静态 MAC 表项由配置指定，与动态学习的维护方式不同。排查时先看表项类型：动态记录的问题要检查流量与学习过程；静态记录的位置错误则要核对配置，不能等待老化自动解决。</p>
+<h3 id="观察与验证"><a href="#观察与验证" class="headerlink" title="观察与验证"></a>观察与验证</h3><p>先按下图连接实验设备，再执行后面的观察步骤。A、B、C 继续使用文首的示例 MAC；为方便 IP 测试，补充地址分别为 <code>10.0.0.1/24</code>、<code>10.0.0.2/24</code>、<code>10.0.0.3/24</code>，全部接入 VLAN10，不配置网关。真实设备的 MAC 若无法修改，就在记录中替换为实际值。</p>
+<p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-24-datacom-04-data-link-datalink-lab-topology.png" alt="A打印机B和C分别连接交换机P1P2P3，标明IP MAC VLAN与三个接入抓包点"></p>
+<p style="text-align: center;"><small>图 6 二层学习实验设备与抓包位置</small></p>
+
+<p>抓包点①②③对应各自的接入链路；它们是观察位置，不是另加的网络设备。若使用模拟环境，选择对应链路捕获；真机镜像则需确认实际镜像源与方向。</p>
+<p>可以在自己的测试环境搭建 A、B、C 与一台交换机。先确认接口 Up、同属测试 VLAN，再让 A 与 B 产生双向流量，观察 MAC 表中的源地址学习结果。</p>
+<div class="tabs"><div class="nav-tabs"><button type="button" class="tab active">看交换机</button><button type="button" class="tab">看数据帧</button></div><div class="tab-contents"><div class="tab-item-content active"><p>查询设备 MAC 地址表，核对 <strong>MAC、VLAN、出接口、动态或静态类型</strong>。Cisco IOS 常用 <code>show mac address-table</code>；华为 VRP 常用 <code>display mac-address</code>。实际设备通过命令帮助确认查询语法。</p>
+<p>若 A 的源流量已经到达交换机，但找不到 A 的动态表项，接着检查入接口所属 VLAN、MAC 学习是否禁用、端口安全限制与日志。若已经查到表项，则检查对应 VLAN 和出接口是否与实际连接一致。</p></div><div class="tab-item-content"><p>在自己的网卡上用 Wireshark 观察流量，展开 Ethernet II，核对源 MAC、目的 MAC 与 Type。可用显示过滤器 <code>eth.addr == 02:00:00:00:00:0a</code> 筛选示例地址，实际操作时替换成真实地址。</p>
+<p>主机端抓包不能自动看见交换机所有端口的流量。要验证完整泛洪范围，需要端口镜像、测试仪或合适的模拟环境；仅凭 C 的一次抓包结果不能断言全部转发行为。</p></div></div><div class="tab-to-top"><button type="button" aria-label="scroll to top"><i class="fas fa-arrow-up"></i></button></div></div>
+
+<div class="note info simple"><p>说明：以上是待自行执行的验证步骤。真实 IP 测试还会出现 ARP 等广播，它们可能先触发 MAC 学习。要复现“空表下的首个未知单播”，必须控制初始表项与背景流量，不能把第一次 ping 等同于第一次以太网帧。</p>
+</div>
+
+<h4 id="先写预期，再做验证"><a href="#先写预期，再做验证" class="headerlink" title="先写预期，再做验证"></a>先写预期，再做验证</h4><p>为避免“看到什么都能解释”，实验前先写出三个时刻的预期表项，结果见表 5。表中的结果针对文首的受控环境，不是本文已取得的测试输出。</p>
+<p style="text-align: center;"><small>表 5 MAC 学习的预期记录</small></p>
+
+<table>
+<thead>
+<tr>
+<th>时刻</th>
+<th>VLAN 10 的预期动态记录</th>
+<th>当前 A 到 B 的处理</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>初始为空</td>
+<td>无</td>
+<td>B 未知时泛洪</td>
+</tr>
+<tr>
+<td>A 的第一帧到达后</td>
+<td>A → P1</td>
+<td>B 仍未知，向 P2、P3 泛洪</td>
+</tr>
+<tr>
+<td>B 的回复到达后</td>
+<td>A → P1；B → P2</td>
+<td>后续发往 B 的帧定向到 P2</td>
+</tr>
+<tr>
+<td>C 尚未发送</td>
+<td>不应仅因收到泛洪就新增 C</td>
+<td>C 是否被学习取决于是否发出源流量</td>
+</tr>
+</tbody></table>
+<p>实际 ping 往往先出现 ARP 请求。ARP 请求以广播方式询问地址，交换机在收到它时已经能学习 A；B 的 ARP 回复又能使交换机学习 B。所以正式的 ICMP 单播到来时，MAC 表可能早已完整，这并不是学习机制失效。</p>
+<p>若要观察泛洪，先区分 ARP 表与交换机 MAC 表：ARP 表解决本机 IPv4 地址到链路地址的映射，MAC 表解决交换机在某 VLAN 中从哪个接口转发。两张表可以分别老化，清理其中一张不会自动清空另一张。测试应在自己的实验环境控制状态，避免清理生产设备表项影响其他流量。</p>
+<h4 id="把现象转成排查分支"><a href="#把现象转成排查分支" class="headerlink" title="把现象转成排查分支"></a>把现象转成排查分支</h4><p style="text-align: center;"><small>表 6 二层观察与下一步动作</small></p>
+
+<table>
+<thead>
+<tr>
+<th>观察结果</th>
+<th>能确定的事实</th>
+<th>下一步</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>端口 Up，却没有终端动态 MAC</td>
+<td>物理链路建立，但尚无相应学习记录</td>
+<td>确认终端确实发送、入接口 VLAN 正确，再查学习与安全限制</td>
+</tr>
+<tr>
+<td>MAC 出现在错误 VLAN</td>
+<td>流量分类或预期的 VLAN 不一致</td>
+<td>核对终端接入口归属与上联标签处理</td>
+</tr>
+<tr>
+<td>同一 MAC 持续在两个端口间切换</td>
+<td>同一源地址反复从不同方向到达</td>
+<td>对照时间和连接变更，排查环路与重复地址</td>
+</tr>
+<tr>
+<td>MAC 位置正确，应用仍失败</td>
+<td>有二层可达方向记录，业务尚未验证成功</td>
+<td>继续核对 IP、网关、访问控制及应用服务</td>
+</tr>
+</tbody></table>
+<h2 id="重点回顾"><a href="#重点回顾" class="headerlink" title="重点回顾"></a>重点回顾</h2><h3 id="知识主线"><a href="#知识主线" class="headerlink" title="知识主线"></a>知识主线</h3><p>先把这一篇串成一次真实操作：物理层送来比特，数据链路层按帧格式解释内容；局域网使用 MAC 等机制识别接收范围；交换机在 VLAN 内从源地址学习，再根据目的地址决定泛洪、定向转发或过滤。</p>
+<p>复习时重点抓住三组区别：**检错与可靠交付、共享介质碰撞与广播范围、源地址学习与目的地址查表。**把它们混为一谈，就会得出“有 FCS 所以一定送达”“交换机上只有一个广播域”“收到发给 B 的帧就能学到 B”等错误结论。</p>
+<h3 id="面试问题"><a href="#面试问题" class="headerlink" title="面试问题"></a>面试问题</h3><p>先尝试用自己的话回答下面两题，再展开核对。首句给结论，随后用一段具体报文过程支撑，不停留在“第二层”“看MAC”这类过短的关键词上。</p>
+<details class="folding-tag" cyan><summary> 二层网络的作用是什么？ </summary>
+              <div class='content'>
+              <p>**二层网络在物理传输之上组织数据帧，提供当前链路或桥接范围内的寻址、交付与相应差错处理。**在以太网中，终端使用 MAC 标识接收端点，帧携带地址、类型和载荷，FCS 用于检测传输错误。</p><p>例如 A 向同 VLAN 的打印机 B 发送数据，交换网络负责把这份帧交到 B 所在方向；目标换成远端 IP 网络时，不能只靠二层广播无限寻找，必须由相应三层路径继续转发。</p><p>回答最后补上边界：二层能力取决于具体链路协议，以太网检错不等于保证可靠送达；VLAN 划定普通二层泛洪范围，也不自动等于完整安全策略。</p>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 二层交换机的工作原理是什么？ </summary>
+              <div class='content'>
+              <p>**从收到帧的源 MAC 学习 VLAN 与接口位置，再以目的 MAC 查表决定出接口。**源地址记录的是可达方向，而不是设备必须直接插在这个端口上。</p><p>假设 A 从 P1 发给 B、MAC 表初始为空：先学习 A→P1；B 尚未知，就向同 VLAN 的合格出接口泛洪，排除 P1。B 从 P2 回复 A 时，交换机学习 B→P2，并向已知的 P1 转发。以后 A 再发给 B，就可以仅发到 P2。</p><p>如果目的地址查到的接口就是入接口，普通转发路径会过滤这份帧；广播在所属 VLAN 的允许范围传播。动态表项还会随源流量刷新、按规则老化，因此表项不是插线后永久不变的名单。ASIC 等硬件可以承担高速处理，但学习与转发的逻辑仍需按这套规则理解。</p>
+              </div>
+            </details>
+
+<h3 id="思考与问题解答"><a href="#思考与问题解答" class="headerlink" title="思考与问题解答"></a>思考与问题解答</h3><p>下面把容易出错的情况放回打印情景中检查。每一题都区分“目前的现象能证明什么”和“还要怎样验证”，不能用一次抓包或一条 MAC 记录替代业务验收。</p>
+<details class="folding-tag" cyan><summary> 交换机从目的 MAC 学习地址吗？ </summary>
+              <div class='content'>
+              <p>**不是，普通动态学习使用收到帧的源 MAC。**源地址说明“这个地址从哪个入接口可达”；目的地址用于查表决定出接口。仅有一帧发给 B，不能证明 B 就在该帧进入的端口后面。</p>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 未知单播会发给所有端口吗？ </summary>
+              <div class='content'>
+              <p>**不会。**在本篇三端口、同 VLAN 且允许转发的情景中，从 P1 收到的未知单播只发向 P2、P3，不发回 P1。其他 VLAN 的端口和不允许转发的端口不在此泛洪范围内。</p>
+              </div>
+            </details>
+
+<details class="folding-tag" green><summary> 查到 MAC 表项，能证明打印正常吗？ </summary>
+              <div class='content'>
+              <p>**不能，只能证明交换机具有相应的二层转发记录。**先核对 VLAN 与接口位置；位置正确后，再检查 IP 连通、访问控制、打印服务和客户端设置。打印成功必须由实际打印任务验证。</p>
+              </div>
+            </details>
+
+<details class="folding-tag" cyan><summary> 已知目的地址就在入接口，为什么丢弃？ </summary>
+              <div class='content'>
+              <p>**因为无需再从原接口转发回去。**例如 A、B 都位于 P1 后面的同一个共享网段，发给 B 的帧进入交换机后，若表项也指向 P1，交换机便过滤这份入站帧。这不等于宣布 B 不可达，而是避免无意义的重复转发。</p>
+              </div>
+            </details>
+
+<details class="folding-tag" green><summary> 只收到别人的泛洪帧，交换机会学到我吗？ </summary>
+              <div class='content'>
+              <p>**不会仅因此学到你。**交换机学习的是进入端口的帧的源地址。C 只接收 A 发给 B 的帧，没有以 C 为源发送，交换机就没有从该流量获得 C 的位置。</p>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 一个交换机端口能学到多个 MAC 吗？ </summary>
+              <div class='content'>
+              <p>**能。**当端口连接下级交换机或其他允许多个终端的二层连接时，多台终端的源流量会从同一端口进入，形成多条 MAC 到同一接口的记录。如果配置了学习数量或端口安全限制，超过限制的处理由具体策略决定，应检查限制值与违规记录。</p>
+              </div>
+            </details>
+
+<details class="folding-tag" cyan><summary> 以太网 FCS 检错后会自动保证数据送达吗？ </summary>
+              <div class='content'>
+              <p>**不会。**FCS 提供差错检测，不提供以太网 MAC 层的可靠确认与重传保证。检测到错误的帧不能作为正确数据交付；业务需要可靠传输时，再由 TCP 等机制完成相应控制。</p>
+              </div>
+            </details>
+
+<details class="folding-tag" green><summary> 为什么第一次 ping 没看到未知单播泛洪？ </summary>
+              <div class='content'>
+              <p>**因为“第一次 ping”不等于“交换机第一次看到这些 MAC”。**先检查 ping 之前是否发生了 ARP、IPv6 邻居发现或其他源流量；再查看是否已有静态、动态表项。要验证未知单播，必须让目标在该 VLAN 的转发表中确实未知，并用能观察各出端口的方式验证。</p>
+              </div>
+            </details>
+
+<h3 id="学习检查"><a href="#学习检查" class="headerlink" title="学习检查"></a>学习检查</h3><div class='checkbox green checked'><input type="checkbox" checked="checked"/>
+            <p>能区分比特传输、数据成帧与可靠交付。</p>
+            </div>
+<div class='checkbox green checked'><input type="checkbox" checked="checked"/>
+            <p>能识别 MAC 地址和帧中的 Length&#x2F;Type 字段。</p>
+            </div>
+<div class='checkbox green checked'><input type="checkbox" checked="checked"/>
+            <p>能按源学习、按目的查表，写出三种处理行为。</p>
+            </div>
+<div class='checkbox green checked'><input type="checkbox" checked="checked"/>
+            <p>能说明泛洪的 VLAN 范围与全双工链路的冲突边界。</p>
+            </div>
+
+<p>下一篇学习 <a href="/2026/11/25/2026-11-25-datacom-05-vlan/">VLAN</a>，把“同一台交换机上的设备”进一步划分到不同的二层广播域。</p>
+<span hidden data-post-admin-edit="/admin/#/collections/posts/entries/2026-11-24-datacom-04-data-link"></span></article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://www.ghib6.com">XBY</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://www.ghib6.com/2026/11/24/2026-11-24-datacom-04-data-link/">https://www.ghib6.com/2026/11/24/2026-11-24-datacom-04-data-link/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://www.ghib6.com" target="_blank">Ghib6</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E6%95%B0%E6%8D%AE%E9%93%BE%E8%B7%AF%E5%B1%82/">数据链路层</a><a class="post-meta__tags" href="/tags/%E4%BB%A5%E5%A4%AA%E7%BD%91/">以太网</a><a class="post-meta__tags" href="/tags/MAC%E5%9C%B0%E5%9D%80/">MAC地址</a><a class="post-meta__tags" href="/tags/%E4%BA%A4%E6%8D%A2%E6%9C%BA/">交换机</a><a class="post-meta__tags" href="/tags/%E5%B9%BF%E6%92%AD%E5%9F%9F/">广播域</a></div><div class="post-share"><div class="social-share" data-image="https://picbed.ghib6.com/img/posts/2026-11-24-datacom-04-data-link-switch-learning-generated.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/11/25/2026-11-25-datacom-05-vlan/" title="数通05：VLAN原理与配置"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-25-datacom-05-vlan-vlan-topology-generated.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">数通05：VLAN原理与配置</div></div><div class="info-2"><div class="info-item-1">办公室搬到了两层楼，每层都有一台交换机。行政和财务的电脑分散在两层：同部门要能互相访问，不同部门又要分开管理。难道要给每个部门各买一套交换机、各拉一条网线吗？ 不用。VLAN 就是解决这类问题的一种办法。 上一篇讲过，交换机会学习源 MAC，再按目的 MAC 转发。同一个广播域里的设备，还会收到广播和部分泛洪流量。这次要做的是：共用交换机，但让不同部门的广播各自留在自己的范围内。 VLAN 的中文名是“虚拟局域网”，主要用来划分二层广播域。下面从广播为什么需要隔离讲起，再看标签、接口类型和配置，最后把实验题与面试题一起整理。 说明：下面是可自行搭建的实验和预期结果，还没有在真机上实测。命令采用华为常见 VRP 写法，接口名用 GigabitEthernet0&#x2F;0&#x2F;x。实际操作时先核对型号、版本和接口名；已有业务的设备不要直接套用整段配置。     VLAN 的产生先看广播的去向A 想找同网段设备的 MAC，会先发 ARP 广播。如果大家都在一个大广播域里，财务电脑找打印机，行政电脑也会收到这份广播。交换机不知道目的 MAC 时，还会把未知单播复制到同 VLAN...</div></div></div></a><a class="pagination-related" href="/2026/11/24/2026-11-24-datacom-03-physical-layer/" title="数通03：物理层"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-24-datacom-03-physical-layer-physical-path-generated.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">数通03：物理层</div></div><div class="info-2"><div class="info-item-1">还是那间办公室。你把电脑接到墙上的网络面板，却发现系统显示“网络电缆被拔出”。同事的电脑插在旁边就能用，自己的网线看起来也没有断，问题到底在哪？ 先别急着修改 IP。网络面板只是整段连接的一环，墙内线缆、配线架、交换机端口、网卡状态都可能影响链路建立。物理层首先要解决的问题，是让比特能够通过介质在设备之间传递。 上一篇介绍了网络分层。这次从最底下一层看起：数据到底靠什么传过去，插好线之后，两端又怎样确定工作速率。 说明：本文的办公室故障是教学情景，命令与排查步骤是操作示例，不代表已在真实设备上完成实验或取得测量结果。     物理层及介质物理层不只是网线。网线、光纤和无线信号负责承载信息，物理层则规定设备怎样用它们传送比特。换一种介质，信号和接口可以变，上层仍然要拿到可处理的数据，如图 1。  图 1 常见物理连接路径  图里的三种连接用的信号不同，目的相同：让两端收发比特。不过，链路能建立只是第一步，后面还得检查地址、VLAN 和具体服务。 四类特性如何理解看接口时，可以依次问四件事：插头怎么接、信号有什么要求、各个部分负责什么、通信按什么顺序进行。它们对应表 1 中的四类特性...</div></div></div></a></nav><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/touxiang.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">XBY</div><div class="author-info-description">这是一个未完成的博客</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">29</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">89</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">7</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/Ghib6"><i class="fab fa-github"></i><span>前往妙妙小屋</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/Ghib6" target="_blank" title="Github"><i class="fab fa-github"></i></a><a class="social-icon" href="https://mail.163.com/" target="_blank" title="Email"><i class="fa fa-envelope"></i></a><a class="social-icon" href="https://space.bilibili.com/324065498" target="_blank" title="bilibili"><i class="fab fa-bilibili"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">欢迎来到我的博客！</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E9%93%BE%E8%B7%AF%E5%B1%82"><span class="toc-number">1.</span> <span class="toc-text">数据链路层</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E9%93%BE%E8%B7%AF%E5%B1%82%E7%9A%84%E4%BD%9C%E7%94%A8"><span class="toc-number">1.1.</span> <span class="toc-text">数据链路层的作用</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%93%BE%E8%B7%AF%E7%AE%A1%E7%90%86%E4%B8%8E%E6%B5%81%E9%87%8F%E6%8E%A7%E5%88%B6%E7%9A%84%E8%BE%B9%E7%95%8C"><span class="toc-number">1.2.</span> <span class="toc-text">链路管理与流量控制的边界</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B1%80%E5%9F%9F%E7%BD%91%E6%8A%80%E6%9C%AF"><span class="toc-number">2.</span> <span class="toc-text">局域网技术</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B1%80%E5%9F%9F%E7%BD%91%E6%8A%80%E6%9C%AF%E6%A0%87%E5%87%86"><span class="toc-number">2.1.</span> <span class="toc-text">局域网技术标准</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E9%93%BE%E8%B7%AF%E5%B1%82%E7%9A%84%E5%AD%90%E5%B1%82"><span class="toc-number">2.2.</span> <span class="toc-text">数据链路层的子层</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#MAC-%E5%9C%B0%E5%9D%80%E5%9F%BA%E7%A1%80%E6%A6%82%E5%BF%B5"><span class="toc-number">2.3.</span> <span class="toc-text">MAC 地址基础概念</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%A0%BC%E5%BC%8F%E4%B8%8E%E5%9C%B0%E5%9D%80%E7%B1%BB%E5%9E%8B"><span class="toc-number">2.3.1.</span> <span class="toc-text">格式与地址类型</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%8D%81%E5%85%AD%E8%BF%9B%E5%88%B6%E6%80%8E%E6%A0%B7%E8%AF%BB"><span class="toc-number">2.3.2.</span> <span class="toc-text">十六进制怎样读</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#MAC-%E4%B8%8E-IP-%E7%9A%84%E5%88%86%E5%B7%A5"><span class="toc-number">2.3.3.</span> <span class="toc-text">MAC 与 IP 的分工</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%A5%E5%A4%AA%E7%BD%91"><span class="toc-number">3.</span> <span class="toc-text">以太网</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BB%A5%E5%A4%AA%E7%BD%91%E7%9A%84%E5%8F%91%E5%B1%95"><span class="toc-number">3.1.</span> <span class="toc-text">以太网的发展</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%B1%E4%BA%AB%E5%BC%8F%E4%BB%A5%E5%A4%AA%E7%BD%91%E4%B8%8E-CSMA-CD"><span class="toc-number">3.2.</span> <span class="toc-text">共享式以太网与 CSMA&#x2F;CD</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%A8%E5%8F%8C%E5%B7%A5%E9%93%BE%E8%B7%AF%E8%BF%98%E4%BC%9A%E5%86%B2%E7%AA%81%E5%90%97"><span class="toc-number">3.3.</span> <span class="toc-text">全双工链路还会冲突吗</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B9%BF%E6%92%AD%E8%83%BD%E8%B7%A8%E8%B6%8A%E5%93%AA%E9%87%8C"><span class="toc-number">3.4.</span> <span class="toc-text">广播能跨越哪里</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%94%A8%E6%8B%93%E6%89%91%E5%88%86%E5%88%AB%E6%95%B0%E6%B8%85%E6%A5%9A"><span class="toc-number">3.5.</span> <span class="toc-text">用拓扑分别数清楚</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BA%8C%E5%B1%82%E7%8E%AF%E8%B7%AF%E4%B8%BA%E4%BB%80%E4%B9%88%E4%BC%9A%E6%94%BE%E5%A4%A7%E6%B3%9B%E6%B4%AA"><span class="toc-number">3.6.</span> <span class="toc-text">二层环路为什么会放大泛洪</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BB%A5%E5%A4%AA%E7%BD%91%E5%B8%A7%E6%A0%BC%E5%BC%8F"><span class="toc-number">3.7.</span> <span class="toc-text">以太网帧格式</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%B1%BB%E5%9E%8B%E4%B8%8E%E9%95%BF%E5%BA%A6%E6%80%8E%E6%A0%B7%E5%8C%BA%E5%88%86"><span class="toc-number">3.7.1.</span> <span class="toc-text">类型与长度怎样区分</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%B8%A4%E7%A7%8D%E5%B0%81%E8%A3%85%E6%94%BE%E5%9C%A8%E4%B8%80%E8%B5%B7%E7%9C%8B"><span class="toc-number">3.7.2.</span> <span class="toc-text">两种封装放在一起看</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%A5%E5%A4%AA%E7%BD%91%E4%BA%A4%E6%8D%A2%E6%9C%BA"><span class="toc-number">4.</span> <span class="toc-text">以太网交换机</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%88%E5%AD%A6%E4%B9%A0%E6%BA%90%EF%BC%8C%E5%86%8D%E6%9F%A5%E7%9B%AE%E7%9A%84"><span class="toc-number">4.1.</span> <span class="toc-text">先学习源，再查目的</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%A1%AC%E4%BB%B6%E8%BD%AC%E5%8F%91%E4%B8%8E%E5%9C%B0%E5%9D%80%E8%A1%A8"><span class="toc-number">4.2.</span> <span class="toc-text">硬件转发与地址表</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%89%E6%AC%A1%E4%BC%A0%E8%BE%93%E8%B5%B0%E4%B8%80%E9%81%8D"><span class="toc-number">4.3.</span> <span class="toc-text">三次传输走一遍</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%89%E7%A7%8D%E5%9F%BA%E6%9C%AC%E5%A4%84%E7%90%86%E8%A1%8C%E4%B8%BA"><span class="toc-number">4.4.</span> <span class="toc-text">三种基本处理行为</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8A%8A%E5%A4%84%E7%90%86%E8%A1%8C%E4%B8%BA%E8%90%BD%E5%88%B0%E7%AB%AF%E5%8F%A3"><span class="toc-number">4.5.</span> <span class="toc-text">把处理行为落到端口</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%A1%A8%E9%A1%B9%E4%BC%9A%E5%88%B7%E6%96%B0%E3%80%81%E8%80%81%E5%8C%96%E5%92%8C%E8%BF%81%E7%A7%BB"><span class="toc-number">4.6.</span> <span class="toc-text">表项会刷新、老化和迁移</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%A7%82%E5%AF%9F%E4%B8%8E%E9%AA%8C%E8%AF%81"><span class="toc-number">4.7.</span> <span class="toc-text">观察与验证</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%85%88%E5%86%99%E9%A2%84%E6%9C%9F%EF%BC%8C%E5%86%8D%E5%81%9A%E9%AA%8C%E8%AF%81"><span class="toc-number">4.7.1.</span> <span class="toc-text">先写预期，再做验证</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%8A%8A%E7%8E%B0%E8%B1%A1%E8%BD%AC%E6%88%90%E6%8E%92%E6%9F%A5%E5%88%86%E6%94%AF"><span class="toc-number">4.7.2.</span> <span class="toc-text">把现象转成排查分支</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%87%8D%E7%82%B9%E5%9B%9E%E9%A1%BE"><span class="toc-number">5.</span> <span class="toc-text">重点回顾</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9F%A5%E8%AF%86%E4%B8%BB%E7%BA%BF"><span class="toc-number">5.1.</span> <span class="toc-text">知识主线</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%9D%A2%E8%AF%95%E9%97%AE%E9%A2%98"><span class="toc-number">5.2.</span> <span class="toc-text">面试问题</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%80%9D%E8%80%83%E4%B8%8E%E9%97%AE%E9%A2%98%E8%A7%A3%E7%AD%94"><span class="toc-number">5.3.</span> <span class="toc-text">思考与问题解答</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AD%A6%E4%B9%A0%E6%A3%80%E6%9F%A5"><span class="toc-number">5.4.</span> <span class="toc-text">学习检查</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/11/27/2026-11-27-datacom-09-transport/" title="数通09：传输层"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-27-datacom-09-transport-handshake.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="数通09：传输层"/></a><div class="content"><a class="title" href="/2026/11/27/2026-11-27-datacom-09-transport/" title="数通09：传输层">数通09：传输层</a><time datetime="2026-11-27T13:44:54.000Z" title="发表于 2026-11-27 13:44:54">2026-11-27</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/11/27/2026-11-27-datacom-08-inter-vlan/" title="数通08：VLAN间通信"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-27-datacom-08-inter-vlan-vlanif.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="数通08：VLAN间通信"/></a><div class="content"><a class="title" href="/2026/11/27/2026-11-27-datacom-08-inter-vlan/" title="数通08：VLAN间通信">数通08：VLAN间通信</a><time datetime="2026-11-27T09:18:43.000Z" title="发表于 2026-11-27 09:18:43">2026-11-27</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/11/26/2026-11-26-datacom-07-ip-routing/" title="数通07：IP路由基础"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-26-datacom-07-ip-routing-table.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="数通07：IP路由基础"/></a><div class="content"><a class="title" href="/2026/11/26/2026-11-26-datacom-07-ip-routing/" title="数通07：IP路由基础">数通07：IP路由基础</a><time datetime="2026-11-26T15:08:40.000Z" title="发表于 2026-11-26 15:08:40">2026-11-26</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/11/26/2026-11-26-datacom-06-network-layer/" title="数通06：网络层实验"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-26-datacom-06-network-layer-labs.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="数通06：网络层实验"/></a><div class="content"><a class="title" href="/2026/11/26/2026-11-26-datacom-06-network-layer/" title="数通06：网络层实验">数通06：网络层实验</a><time datetime="2026-11-26T14:40:06.000Z" title="发表于 2026-11-26 14:40:06">2026-11-26</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/11/25/2026-11-25-datacom-05-vlan/" title="数通05：VLAN原理与配置"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-25-datacom-05-vlan-vlan-topology-generated.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="数通05：VLAN原理与配置"/></a><div class="content"><a class="title" href="/2026/11/25/2026-11-25-datacom-05-vlan/" title="数通05：VLAN原理与配置">数通05：VLAN原理与配置</a><time datetime="2026-11-25T08:50:00.000Z" title="发表于 2026-11-25 08:50:00">2026-11-25</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2020 - 2026 By XBY</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="translateLink" type="button" title="简繁转换">繁</button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="/js/tw_cn.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page/instantpage.min.js" type="module"></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js"></script><script src="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (false) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://hexo-twikoo.ghib6.com/',
+      region: '',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://hexo-twikoo.ghib6.com/',
+      region: '',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    GLOBAL_CONFIG_SITE.pageType === 'post' && getCount()
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script defer src="/js/light.js"></script><canvas id="universe"></canvas><script defer src="/js/universe.js"></script><script defer src="/js/cursor.js"></script><script defer src="/js/pjax-no-enter-animation.js?v=20260511"></script><script defer src="/js/webinfo-count.js?v=20260509"></script><script defer src="/js/post-admin-edit.js?v=20261125"></script><div class="aplayer no-destroy" data-id="1985708788" data-server="netease" data-type="song" data-fixed="true" data-mini="true" data-listFolded="false" data-order="random" data-preload="none" data-autoplay="false" muted></div><script id="canvas_nest" defer="defer" color="0,0,255" opacity="0.7" zIndex="-1" count="50" mobile="false" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/canvas-nest.min.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/activate-power-mode.min.js"></script><script>POWERMODE.colorful = true;
+POWERMODE.shake = true;
+POWERMODE.mobile = false;
+document.body.addEventListener('input', POWERMODE);
+</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/metingjs/dist/Meting.min.js"></script><script>(() => {
+  const destroyAplayer = () => {
+    if (window.aplayers) {
+      for (let i = 0; i < window.aplayers.length; i++) {
+        if (!window.aplayers[i].options.fixed) {
+          window.aplayers[i].destroy()
+        }
+      }
+    }
+  }
+
+  const runMetingJS = () => {
+    typeof loadMeting === 'function' && document.getElementsByClassName('aplayer').length && loadMeting()
+  }
+
+  btf.addGlobalFn('pjaxSend', destroyAplayer, 'destroyAplayer')
+  btf.addGlobalFn('pjaxComplete', loadMeting, 'runMetingJS')
+})()</script><script src="https://cdn.jsdelivr.net/npm/pjax/pjax.min.js"></script><script>(() => {
+  const pjaxSelectors = ["head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+  window.pjax = new Pjax({
+    elements: 'a:not([target="_blank"])',
+    selectors: pjaxSelectors,
+    cacheBust: false,
+    analytics: false,
+    scrollRestoration: false
+  })
+
+  const triggerPjaxFn = (val) => {
+    if (!val) return
+    Object.values(val).forEach(fn => {
+      try {
+        fn()
+      } catch (err) {
+        console.debug('Pjax callback failed:', err)
+      }
+    })
+  }
+
+  document.addEventListener('pjax:send', () => {
+    // removeEventListener
+    btf.removeGlobalFnEvent('pjaxSendOnce')
+    btf.removeGlobalFnEvent('themeChange')
+
+    // reset readmode
+    const $bodyClassList = document.body.classList
+    if ($bodyClassList.contains('read-mode')) $bodyClassList.remove('read-mode')
+
+    triggerPjaxFn(window.globalFn.pjaxSend)
+  })
+
+  document.addEventListener('pjax:complete', () => {
+    btf.removeGlobalFnEvent('pjaxCompleteOnce')
+    document.querySelectorAll('script[data-pjax]').forEach(item => {
+      const newScript = document.createElement('script')
+      const content = item.text || item.textContent || item.innerHTML || ""
+      Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+      newScript.appendChild(document.createTextNode(content))
+      item.parentNode.replaceChild(newScript, item)
+    })
+
+    triggerPjaxFn(window.globalFn.pjaxComplete)
+  })
+
+  document.addEventListener('pjax:error', e => {
+    if (e.request.status === 404) {
+      const usePjax = true
+      true
+        ? (usePjax ? pjax.loadUrl('/404.html') : window.location.href = '/404.html')
+        : window.location.href = e.request.responseURL
+    }
+  })
+})()</script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="local-search-input"><input placeholder="搜索文章" type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/js/local-search.js?v=20261125-space"></script></div></div><!-- hexo injector body_end start --><script defer src="/js/vendor/marked.js"></script><script defer src="/js/vendor/purify.js"></script><script defer src="/js/pet-assistant.js?v=20261127-stream-errors"></script><script data-pjax>
+  function butterfly_clock_anzhiyu_injector_config(){
+    var parent_div_git = document.getElementsByClassName('sticky_layout')[0];
+    var item_html = '<div class="card-widget card-clock"><div class="card-glass"><div class="card-background"><div class="card-content"><div id="hexo_electric_clock"><img class="entered loading" id="card-clock-loading" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.cbd.int/hexo-butterfly-clock-anzhiyu/lib/loading.gif" style="height: 120px; width: 100%;" data-ll-status="loading"/></div></div></div></div></div>';
+    console.log('已挂载butterfly_clock_anzhiyu')
+    if(parent_div_git) {
+      parent_div_git.insertAdjacentHTML("afterbegin",item_html)
+    }
+  }
+  var elist = 'null'.split(',');
+  var cpage = location.pathname;
+  var epage = '/';
+  var qweather_key = 'b16a1fa0e63c46a4b8f28abfb06ae3fe';
+  var gaud_map_key = 'e2b04289e870b005374ee030148d64fd&s=rsv3';
+  var baidu_ak_key = 'undefined';
+  var flag = 0;
+  var clock_rectangle = '113.34532,23.15624';
+  var clock_default_rectangle_enable = 'false';
+
+  for (var i=0;i<elist.length;i++){
+    if (cpage.includes(elist[i])){
+      flag++;
+    }
+  }
+
+  if ((epage ==='all')&&(flag == 0)){
+    butterfly_clock_anzhiyu_injector_config();
+  }
+  else if (epage === cpage){
+    butterfly_clock_anzhiyu_injector_config();
+  }
+  </script><script src="https://widget.qweather.net/simple/static/js/he-simple-common.js?v=2.0"></script><script data-pjax src="/js/electric-clock.js?v=20260509-ip"></script><script data-pjax>
+  function butterfly_footer_beautify_injector_config(){
+    var parent_div_git = document.getElementById('footer');
+    var item_html = '<div id="workboard"></div><p id="ghbdages"><a class="github-badge" target="_blank" href="https://hexo.io/" style="margin-inline:5px" data-title="博客框架为Hexo_v6.2.0" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Frame-Hexo-blue?style=flat&amp;logo=hexo" alt=""/></a><a class="github-badge" target="_blank" href="https://butterfly.js.org/" style="margin-inline:5px" data-title="主题版本Butterfly_v4.3.1" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Theme-Butterfly-6513df?style=flat&amp;logo=bitdefender" alt=""/></a><a class="github-badge" target="_blank" href="https://vercel.com/" style="margin-inline:5px" data-title="本站采用多线部署，主线路托管于Vercel" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Hosted-Vercel-brightgreen?style=flat&amp;logo=Vercel" alt=""/></a><a class="github-badge" target="_blank" href="https://dashboard.4everland.org/" style="margin-inline:5px" data-title="本站采用多线部署，备用线路托管于4EVERLAND" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Hosted-4EVERLAND-22DDDD?style=flat&amp;logo=IPFS" alt=""/></a><a class="github-badge" target="_blank" href="https://github.com/" style="margin-inline:5px" data-title="本站项目由Github托管" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Source-Github-d021d6?style=flat&amp;logo=GitHub" alt=""/></a><a class="github-badge" target="_blank" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" style="margin-inline:5px" data-title="本站采用知识共享署名-非商业性使用-相同方式共享4.0国际许可协议进行许可" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Copyright-BY--NC--SA%204.0-d42328?style=flat&amp;logo=Claris" alt=""/></a></p>';
+    console.log('已挂载butterfly_footer_beautify')
+    parent_div_git.insertAdjacentHTML("beforeend",item_html)
+    }
+  var elist = 'null'.split(',');
+  var cpage = location.pathname;
+  var epage = 'all';
+  var flag = 0;
+
+  for (var i=0;i<elist.length;i++){
+    if (cpage.includes(elist[i])){
+      flag++;
+    }
+  }
+
+  if ((epage ==='all')&&(flag == 0)){
+    butterfly_footer_beautify_injector_config();
+  }
+  else if (epage === cpage){
+    butterfly_footer_beautify_injector_config();
+  }
+  </script><script async src="/js/footer-runtime.js?v=20260509"></script><div class="js-pjax"><script async="async">var arr = document.getElementsByClassName('recent-post-item');
+for(var i = 0;i<arr.length;i++){
+    arr[i].classList.add('wow');
+    arr[i].classList.add('animate__zoomIn');
+    arr[i].setAttribute('data-wow-duration', '1s');
+    arr[i].setAttribute('data-wow-delay', '1s');
+    arr[i].setAttribute('data-wow-offset', '100');
+    arr[i].setAttribute('data-wow-iteration', '1');
+  }</script><script async="async">var arr = document.getElementsByClassName('card-widget');
+for(var i = 0;i<arr.length;i++){
+    arr[i].classList.add('wow');
+    arr[i].classList.add('animate__zoomIn');
+    arr[i].setAttribute('data-wow-duration', '');
+    arr[i].setAttribute('data-wow-delay', '');
+    arr[i].setAttribute('data-wow-offset', '');
+    arr[i].setAttribute('data-wow-iteration', '');
+  }</script></div><script defer src="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/wow.min.js"></script><script defer src="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/wow_init.js"></script><script async src="//at.alicdn.com/t/font_2032782_8d5kxvn09md.js"></script><script data-pjax src="https://npm.elemecdn.com/hexo-filter-gitcalendar/lib/gitcalendar.js"></script><script data-pjax>
+  function gitcalendar_injector_config(){
+      var parent_div_git = document.getElementById('gitZone');
+      var item_html = '<div class="recent-post-item" id="gitcalendarBar" style="width:100%;height:auto;padding:10px;"><style>#git_container{min-height: 280px}@media screen and (max-width:650px) {#git_container{min-height: 0px}}</style><div id="git_loading" style="width:10%;height:100%;margin:0 auto;display: block;"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 50 50" style="enable-background:new 0 0 50 50" xml:space="preserve"><path fill="#d0d0d0" d="M25.251,6.461c-10.318,0-18.683,8.365-18.683,18.683h4.068c0-8.071,6.543-14.615,14.615-14.615V6.461z" transform="rotate(275.098 25 25)"><animatetransform attributeType="xml" attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.6s" repeatCount="indefinite"></animatetransform></path></svg><style>#git_container{display: none;}</style></div><div id="git_container"></div></div>';
+      parent_div_git.insertAdjacentHTML("afterbegin",item_html)
+      console.log('已挂载gitcalendar')
+      }
+
+    if( document.getElementById('gitZone') && (location.pathname ==='/about/'|| '/about/' ==='all')){
+        gitcalendar_injector_config()
+        GitCalendarInit("https://gh-calendar.rschristian.dev/user/Ghib6",['#d9e0df', '#c6e0dc', '#a8dcd4', '#9adcd2', '#89ded1', '#77e0d0', '#5fdecb', '#47dcc6', '#39dcc3', '#1fdabe', '#00dab9'],'Ghib6')
+    }
+  </script><!-- hexo injector body_end end --><script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"debug":false,"model":{"jsonPath":"/live2dw/assets/wanko.model.json"},"display":{"position":"left","width":150,"height":300},"mobile":{"show":false},"log":false});</script></body></html>

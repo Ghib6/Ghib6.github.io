@@ -1,0 +1,916 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>数通08：VLAN间通信 | Ghib6</title><meta name="author" content="XBY"><meta name="copyright" content="XBY"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="ffffff"><meta name="description" content="完成物理接口、单臂路由和VLANIF三组实验，再配置公司三部门互访与校园监控隔离，按设备给出命令、报文过程和验证方法。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="数通08：VLAN间通信">
+<meta property="og:url" content="https://www.ghib6.com/2026/11/27/2026-11-27-datacom-08-inter-vlan/index.html">
+<meta property="og:site_name" content="Ghib6">
+<meta property="og:description" content="完成物理接口、单臂路由和VLANIF三组实验，再配置公司三部门互访与校园监控隔离，按设备给出命令、报文过程和验证方法。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://picbed.ghib6.com/img/posts/2026-11-27-datacom-08-inter-vlan-vlanif.png">
+<meta property="article:published_time" content="2026-11-27T09:18:43.000Z">
+<meta property="article:modified_time" content="2026-11-27T08:10:48.217Z">
+<meta property="article:author" content="XBY">
+<meta property="article:tag" content="ACL">
+<meta property="article:tag" content="VLAN">
+<meta property="article:tag" content="VLANIF">
+<meta property="article:tag" content="单臂路由">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://picbed.ghib6.com/img/posts/2026-11-27-datacom-08-inter-vlan-vlanif.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "数通08：VLAN间通信",
+  "url": "https://www.ghib6.com/2026/11/27/2026-11-27-datacom-08-inter-vlan/",
+  "image": "https://picbed.ghib6.com/img/posts/2026-11-27-datacom-08-inter-vlan-vlanif.png",
+  "datePublished": "2026-11-27T09:18:43.000Z",
+  "dateModified": "2026-11-27T08:10:48.217Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "XBY",
+      "url": "https://www.ghib6.com"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/moon.jpg"><link rel="canonical" href="https://www.ghib6.com/2026/11/27/2026-11-27-datacom-08-inter-vlan/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.css" media="print" onload="this.media='all'"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!true && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', 'ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          const hour = new Date().getHours()
+          const isNight = hour <= 6 || hour >= 18
+          if (theme === undefined) isNight ? activateDarkMode() : activateLightMode()
+          else theme === 'light' ? activateLightMode() : activateDarkMode()
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":true,"top_n_per_article":1,"unescape":false,"pagination":{"enable":true,"hitsPerPage":8},"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: {"defaultEncoding":2,"translateDelay":0,"msgToTraditionalChinese":"繁","msgToSimplifiedChinese":"简"},
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: true,
+    post: true
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: {"chs_to_cht":"已切换为繁体中文","cht_to_chs":"已切换为简体中文","day_to_night":"已切换为深色模式","night_to_day":"已切换为浅色模式","bgLight":"#49b1f5","bgDark":"#1f1f1f","position":"top-right"},
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: true,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '数通08：VLAN间通信',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="stylesheet" href="/css/custom.css" media="defer" onload="this.media='all'"><link rel="stylesheet" href="/css/custom.css"><link rel="stylesheet" href="/css/universe.css"><link rel="stylesheet" href="/css/progress_bar.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end start --><link rel="stylesheet" href="/css/pet-assistant.css?v=20261127-stream"><link rel="stylesheet" href="https://cdn.cbd.int/hexo-butterfly-clock-anzhiyu/lib/clock.min.css" /><link rel="stylesheet" href="/css/footer-runtime.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/animate.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-butterfly-tag-plugins-plus@latest/lib/assets/font-awesome-animation.min.css" media="defer" onload="this.media='all'"><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-butterfly-tag-plugins-plus@latest/lib/tag_plugins.css" media="defer" onload="this.media='all'"><script src="https://npm.elemecdn.com/hexo-butterfly-tag-plugins-plus@latest/lib/assets/carousel-touch.js"></script><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-filter-gitcalendar/lib/gitcalendar.css" media="print" onload="this.media='all'"><!-- hexo injector head_end end --><meta name="generator" content="Hexo 8.0.0"></head><body><div id="web_bg" style="background-image: url(https://picbed.ghib6.com/img/15.jpg);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/touxiang.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">29</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">89</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">7</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fa fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fa fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fa fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fa fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><span class="site-page group hide"><i class="fa-fw fa fa-list"></i><span> 列表</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fa fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fa fa-video"></i><span> 电影</span></a></li><li><a class="site-page child" target="_blank" rel="noopener" href="https://graph.ghib6.com/"><i class="fa-fw fa fa-project-diagram"></i><span> 思维导图</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/comments/"><i class="fa-fw fa fa-envelope-open"></i><span> 留言板</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fa fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(https://picbed.ghib6.com/img/posts/2026-11-27-datacom-08-inter-vlan-vlanif.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Ghib6</span></a><a class="nav-page-title" href="/"><span class="site-name">数通08：VLAN间通信</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fa fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fa fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fa fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fa fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><span class="site-page group hide"><i class="fa-fw fa fa-list"></i><span> 列表</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fa fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fa fa-video"></i><span> 电影</span></a></li><li><a class="site-page child" target="_blank" rel="noopener" href="https://graph.ghib6.com/"><i class="fa-fw fa fa-project-diagram"></i><span> 思维导图</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/comments/"><i class="fa-fw fa fa-envelope-open"></i><span> 留言板</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fa fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">数通08：VLAN间通信</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-11-27T09:18:43.000Z" title="发表于 2026-11-27 09:18:43">2026-11-27</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-11-27T08:10:48.217Z" title="更新于 2026-11-27 08:10:48">2026-11-27</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%95%B0%E9%80%9A%E5%9F%BA%E7%A1%80/">数通基础</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">7k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>25分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span><span class="post-meta-separator">|</span><span class="post-meta-commentcount"><i class="far fa-comments fa-fw post-meta-icon"></i><span class="post-meta-label">评论数:</span><a href="/2026/11/27/2026-11-27-datacom-08-inter-vlan/#post-comment"><span id="twikoo-count"><i class="fa-solid fa-spinner fa-spin"></i></span></a></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-11-27 08:10:48&quot;}" hidden></div><p>VLAN把二层广播范围分开了，但业务还需要互通：市场部要访问技术部，学生要访问官网，监控却只能在自己的网络内通信。这次先把网关放到正确位置，再分别验证“应该通”和“应该隔离”的流量。</p>
+<p>以下保留三种基础实现和两个综合案例，设备配置分别放进标签页。每组从独立、无残留配置的实验设备开始，不把几组网关叠在同一网络里。</p>
+<div class="note info simple"><p>说明：图片是按接线制作的eNSP风格示意，命令和结果为待执行的实验步骤与预期，没有冒充真机实测。命令采用常见华为VRP写法，路由器使用三层GE口，交换机支持相应VLAN&#x2F;VLANIF功能。接口号按图核对，设备功能与命令支持先用帮助确认。终端需允许ICMP；服务器还要启动HTTP服务。</p>
+</div>
+
+<span id="more"></span>
+
+<h2 id="技术背景"><a href="#技术背景" class="headerlink" title="技术背景"></a>技术背景</h2><p>同VLAN、同子网的主机，通常直接ARP获取对方MAC，再通过二层交换交付。跨VLAN通信则需要网关进行三层转发：主机先按掩码判断目标不在本地，把帧交给网关，而IP目的地址仍是最终主机。</p>
+<p>**允许Trunk通过两个VLAN，只是让两种二层业务都能经过，不会自动把它们路由到一起。**需要在相应三层接口配置网关，并保证接口、直连路由与策略都有效。</p>
+<h2 id="实现方式"><a href="#实现方式" class="headerlink" title="实现方式"></a>实现方式</h2><p style="text-align: center;"><small>表 1 三种实现方式</small></p>
+
+<table>
+<thead>
+<tr>
+<th>方式</th>
+<th>网关放在哪里</th>
+<th>交换机如何对接</th>
+<th>主要特点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>路由器物理接口</td>
+<td>不同物理三层接口</td>
+<td>本例用不同Access口分别交付无标签帧</td>
+<td>每个业务占用物理接口，扩展受限</td>
+</tr>
+<tr>
+<td>路由器子接口</td>
+<td>同一物理口上的Dot1q终结子接口</td>
+<td>Trunk承载多个VID</td>
+<td>一条物理链路复用多个网关，称为单臂路由</td>
+</tr>
+<tr>
+<td>三层交换机VLANIF</td>
+<td>VLAN对应的三层逻辑接口</td>
+<td>二层上联Trunk进入相应VLAN</td>
+<td>二层交换与三层路由在同一设备内协作</td>
+</tr>
+</tbody></table>
+<p>子接口编号在同一父接口下保持唯一，习惯与VID相同，但真正决定终结哪个VLAN的是 <code>dot1q termination vid</code>。VLANIF编号则直接对应VLAN ID，例如VLAN10对应VLANIF10。</p>
+<p>物理接口实验采用普通无标签三层交付，不应推广成“任何路由器物理接口永远不能处理标签”。三层交换机也不只有VLANIF一种三层接口形式，这里选VLANIF完成当前实验。</p>
+<h2 id="二三层通信转发过程"><a href="#二三层通信转发过程" class="headerlink" title="二三层通信转发过程"></a>二三层通信转发过程</h2><h3 id="先看PC1到PC2的路径"><a href="#先看PC1到PC2的路径" class="headerlink" title="先看PC1到PC2的路径"></a>先看PC1到PC2的路径</h3><p>PC1在VLAN10，地址192.168.10.2&#x2F;24，网关192.168.10.254；PC2在VLAN20，地址192.168.20.2&#x2F;24，网关192.168.20.254。图1专门用于分析报文，SW1的上联是GE0&#x2F;0&#x2F;24；后面的基础配置实验使用GE0&#x2F;0&#x2F;1上联，别混用端口。</p>
+<p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-27-datacom-08-inter-vlan-process.png" alt="PC1与PC2经过SW1和SW2的VLANIF进行跨VLAN转发，标明三个观察点"></p>
+<p style="text-align: center;"><small>图 1 二三层转发与观察位置</small></p>
+
+<p>PC1先ARP查询自己的网关。缓存就绪后，发往PC2的IP包被装进以太网帧：源MAC是PC1，目的MAC是网关VLANIF10。它不会直接在VLAN10里广播询问PC2的MAC。</p>
+<p>SW1从Access10收到无标签帧，按PVID归入VLAN10，再查该VLAN的目的MAC。找到网关在上联方向后，以VID10标签从GE0&#x2F;0&#x2F;24发出。端口内部的VLAN归类不等于所有接入口线缆上都会出现802.1Q标签。</p>
+<p>SW2识别目的MAC属于本机网关，终结入站二层封装，查询目的192.168.20.2，匹配192.168.20.0&#x2F;24的直连路由。再通过VLAN20的ARP映射找到PC2，重新封装：源MAC改为VLANIF20对应的网关MAC，目的MAC改为PC2。普通路由转发会递减TTL并更新IPv4首部校验和；没有NAT时，两端IP保持不变。</p>
+<p style="text-align: center;"><small>表 2 同一请求在各段链路上的字段</small></p>
+
+<table>
+<thead>
+<tr>
+<th>观察位置</th>
+<th>源MAC → 目的MAC</th>
+<th>线上标签</th>
+<th>源IP → 目的IP</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>A，PC1→SW1</td>
+<td>PC1_MAC → VLANIF10_MAC</td>
+<td>无</td>
+<td>192.168.10.2 → 192.168.20.2</td>
+</tr>
+<tr>
+<td>B，SW1→SW2</td>
+<td>PC1_MAC → VLANIF10_MAC</td>
+<td>VID10</td>
+<td>不变</td>
+</tr>
+<tr>
+<td>B，SW2→SW1</td>
+<td>VLANIF20_MAC → PC2_MAC</td>
+<td>VID20</td>
+<td>不变</td>
+</tr>
+<tr>
+<td>C，SW1→PC2</td>
+<td>VLANIF20_MAC → PC2_MAC</td>
+<td>无</td>
+<td>不变</td>
+</tr>
+</tbody></table>
+<h3 id="三张表分别解决什么"><a href="#三张表分别解决什么" class="headerlink" title="三张表分别解决什么"></a>三张表分别解决什么</h3><p style="text-align: center;"><small>表 3 本次转发所需的关键表项</small></p>
+
+<table>
+<thead>
+<tr>
+<th>设备与表</th>
+<th>关键内容</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SW1 MAC表</td>
+<td>VLAN10、VLANIF10_MAC、GE0&#x2F;0&#x2F;24</td>
+<td>请求送往网关</td>
+</tr>
+<tr>
+<td>SW2路由表</td>
+<td>192.168.20.0&#x2F;24、Direct、VLANIF20</td>
+<td>查找目标所在三层出口</td>
+</tr>
+<tr>
+<td>SW2 ARP表</td>
+<td>192.168.20.2 → PC2_MAC，VLANIF20所属链路</td>
+<td>获取目标邻居MAC</td>
+</tr>
+<tr>
+<td>SW2 MAC表</td>
+<td>VLAN20、PC2_MAC、GE0&#x2F;0&#x2F;1</td>
+<td>目标主机在下联方向</td>
+</tr>
+<tr>
+<td>SW1 MAC表</td>
+<td>VLAN20、PC2_MAC、GE0&#x2F;0&#x2F;2</td>
+<td>收到VID20帧后送往PC2</td>
+</tr>
+</tbody></table>
+<p>直连路由的NextHop字段可能显示本机192.168.20.254，但外部交付对象是PC2，不是再ARP寻找“另一个192.168.20.254”。本机接口MAC由设备掌握，也无需通过ARP发现自己。回到SW1后查的是PC2_MAC，而不是把网关MAC误记到PC2接入口。</p>
+<p>回复方向反过来：PC2先交给VLANIF20，路由到VLAN10后，再交给PC1。两个VLANIF的MAC在部分设备上可以相同，抓包时要结合方向、VID和接口身份解释，不能要求它们一定是两个不同数值。</p>
+<h2 id="配置命令"><a href="#配置命令" class="headerlink" title="配置命令"></a>配置命令</h2><h3 id="实验一：路由器物理接口"><a href="#实验一：路由器物理接口" class="headerlink" title="实验一：路由器物理接口"></a>实验一：路由器物理接口</h3><p>这组验证两个独立物理接口能否分别作为两个VLAN的网关。PC1、PC2沿用前面的.2&#x2F;24地址与.254网关，接线按图2。两台交换机分别只承载一个业务VLAN。</p>
+<p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-27-datacom-08-inter-vlan-physical.png" alt="两台交换机通过Access口分别接到R1两个物理网关接口"></p>
+<p style="text-align: center;"><small>图 2 物理接口实验</small></p>
+
+<div class="tabs"><div class="nav-tabs"><button type="button" class="tab active">R1</button><button type="button" class="tab">SW1</button><button type="button" class="tab">SW2</button></div><div class="tab-contents"><div class="tab-item-content active"><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">system-view</span><br><span class="line">sysname R1</span><br><span class="line">interface GigabitEthernet 0/0/1</span><br><span class="line"> ip address 192.168.10.254 24</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">interface GigabitEthernet 0/0/2</span><br><span class="line"> ip address 192.168.20.254 24</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">return</span><br></pre></td></tr></table></figure></div><div class="tab-item-content"><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">system-view</span><br><span class="line">sysname SW1</span><br><span class="line">vlan batch 10</span><br><span class="line">interface GigabitEthernet 0/0/1</span><br><span class="line"> port link-type access</span><br><span class="line"> port default vlan 10</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">interface GigabitEthernet 0/0/2</span><br><span class="line"> port link-type access</span><br><span class="line"> port default vlan 10</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">return</span><br></pre></td></tr></table></figure></div><div class="tab-item-content"><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">system-view</span><br><span class="line">sysname SW2</span><br><span class="line">vlan batch 20</span><br><span class="line">interface GigabitEthernet 0/0/1</span><br><span class="line"> port link-type access</span><br><span class="line"> port default vlan 20</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">interface GigabitEthernet 0/0/2</span><br><span class="line"> port link-type access</span><br><span class="line"> port default vlan 20</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">return</span><br></pre></td></tr></table></figure></div></div><div class="tab-to-top"><button type="button" aria-label="scroll to top"><i class="fas fa-arrow-up"></i></button></div></div>
+
+<p>交换机的主机口和路由器对接口都设为同一业务Access VLAN，是为了在本地完成归类，并在交给普通三层物理口时发送无标签帧。R1两个接口直接连接两个子网，因此接口有效后应有两条直连网段路由，不需要额外静态路由。</p>
+<p>先从两台PC分别ping自己的网关，再从PC1 ping 192.168.20.2。请求走PC1→SW1→R1→SW2→PC2，R1重新封装到另一侧；返回请求按相反方向查路由。两条交换机到R1的线上，本例普通业务都应无标签。</p>
+<div class="note info simple"><p>注意：网关都不通时，先看Access归属、IP与接口状态，不要先加静态路由。只能通一侧网关时逐侧修复；两侧网关正常而跨VLAN失败，再检查ARP、路由与终端策略。每新增一个这种网关都消耗物理接口，这是该方案的主要限制。</p>
+</div>
+
+<h3 id="实验二：单臂路由"><a href="#实验二：单臂路由" class="headerlink" title="实验二：单臂路由"></a>实验二：单臂路由</h3><p>重新使用一台SW1和一台R1，不继承前组物理口IP。PC1接GE0&#x2F;0&#x2F;2，PC2接GE0&#x2F;0&#x2F;3，上联两端都是GE0&#x2F;0&#x2F;1。两台PC仍使用.2&#x2F;24与对应.254网关。</p>
+<p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-27-datacom-08-inter-vlan-subif.png" alt="交换机Trunk连接R1两个Dot1q终结子接口，主机分别属于VLAN10和20"></p>
+<p style="text-align: center;"><small>图 3 单臂路由实验</small></p>
+
+<div class="tabs"><div class="nav-tabs"><button type="button" class="tab active">R1</button><button type="button" class="tab">SW1</button></div><div class="tab-contents"><div class="tab-item-content active"><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">system-view</span><br><span class="line">sysname R1</span><br><span class="line">interface GigabitEthernet 0/0/1</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">interface GigabitEthernet 0/0/1.10</span><br><span class="line"> dot1q termination vid 10</span><br><span class="line"> ip address 192.168.10.254 24</span><br><span class="line"> arp broadcast enable</span><br><span class="line"> quit</span><br><span class="line">interface GigabitEthernet 0/0/1.20</span><br><span class="line"> dot1q termination vid 20</span><br><span class="line"> ip address 192.168.20.254 24</span><br><span class="line"> arp broadcast enable</span><br><span class="line"> quit</span><br><span class="line">return</span><br></pre></td></tr></table></figure></div><div class="tab-item-content"><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">system-view</span><br><span class="line">sysname SW1</span><br><span class="line">vlan batch 10 20</span><br><span class="line">interface GigabitEthernet 0/0/2</span><br><span class="line"> port link-type access</span><br><span class="line"> port default vlan 10</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">interface GigabitEthernet 0/0/3</span><br><span class="line"> port link-type access</span><br><span class="line"> port default vlan 20</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">interface GigabitEthernet 0/0/1</span><br><span class="line"> port link-type trunk</span><br><span class="line"> undo port trunk allow-pass vlan 1</span><br><span class="line"> port trunk allow-pass vlan 10 20</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">return</span><br></pre></td></tr></table></figure></div></div><div class="tab-to-top"><button type="button" aria-label="scroll to top"><i class="fas fa-arrow-up"></i></button></div></div>
+
+<p><code>dot1q termination vid 10</code>让.10子接口处理VID10，.20同理。<code>arp broadcast enable</code>是本例Dot1q终结子接口处理ARP广播所需配置，不能只配IP就省掉。父接口只承载链路，不再配置与子接口重复的业务网关。</p>
+<p>PC1的请求进入SW1后，上联带VID10送至R1子接口.10；路由查询后，从同一物理口的.20带VID20返回SW1，再从PC2的Access口去标签发出。一条线同时出现去向与返回交换机的业务，是单臂转发的正常路径。</p>
+<p>验证顺序仍是各自网关、跨VLAN主机，再检查上联的ARP和ICMP。抓包用 <code>arp or icmp</code>，同一请求在上联可见不同方向的VID10与VID20；对照IP、ICMP标识和序号，避免把回复误当成同一请求。上联PVID保持1，业务10、20都带标签。</p>
+<div class="note info simple"><p>注意：子接口名字以.10结尾，不会自动终结VLAN10，必须核对vid命令。Trunk漏放某个VLAN会让对应网关不可达；少ARP广播配置也会影响邻居建立。移除VLAN1沿用本组隔离实验做法，不要在未确认管理流量时照搬到现网。</p>
+</div>
+
+<h3 id="实验三：VLANIF网关"><a href="#实验三：VLANIF网关" class="headerlink" title="实验三：VLANIF网关"></a>实验三：VLANIF网关</h3><p>这组用L3_SW替代路由器。L2_SW的上联、PC1与PC2端口分别是GE0&#x2F;0&#x2F;1、2、3；L3_SW用GE0&#x2F;0&#x2F;1对接。地址仍为192.168.10.2&#x2F;24、192.168.20.2&#x2F;24，两端网关分别是192.168.10.254和192.168.20.254。</p>
+<p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-27-datacom-08-inter-vlan-vlanif.png" alt="两台交换机Trunk互联，L3_SW通过VLANIF10和20提供网关"></p>
+<p style="text-align: center;"><small>图 4 VLANIF实验</small></p>
+
+<div class="tabs"><div class="nav-tabs"><button type="button" class="tab active">L2_SW</button><button type="button" class="tab">L3_SW</button></div><div class="tab-contents"><div class="tab-item-content active"><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">system-view</span><br><span class="line">sysname L2_SW</span><br><span class="line">vlan batch 10 20</span><br><span class="line">interface GigabitEthernet 0/0/2</span><br><span class="line"> port link-type access</span><br><span class="line"> port default vlan 10</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">interface GigabitEthernet 0/0/3</span><br><span class="line"> port link-type access</span><br><span class="line"> port default vlan 20</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">interface GigabitEthernet 0/0/1</span><br><span class="line"> port link-type trunk</span><br><span class="line"> undo port trunk allow-pass vlan 1</span><br><span class="line"> port trunk allow-pass vlan 10 20</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">return</span><br></pre></td></tr></table></figure></div><div class="tab-item-content"><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">system-view</span><br><span class="line">sysname L3_SW</span><br><span class="line">vlan batch 10 20</span><br><span class="line">interface GigabitEthernet 0/0/1</span><br><span class="line"> port link-type trunk</span><br><span class="line"> undo port trunk allow-pass vlan 1</span><br><span class="line"> port trunk allow-pass vlan 10 20</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">interface Vlanif 10</span><br><span class="line"> ip address 192.168.10.254 24</span><br><span class="line"> quit</span><br><span class="line">interface Vlanif 20</span><br><span class="line"> ip address 192.168.20.254 24</span><br><span class="line"> quit</span><br><span class="line">return</span><br></pre></td></tr></table></figure></div></div><div class="tab-to-top"><button type="button" aria-label="scroll to top"><i class="fas fa-arrow-up"></i></button></div></div>
+
+<p>L2_SW只负责接入和二层转发，网关放在L3_SW的VLANIF10与20。请求带VID10到L3_SW，三层查询后在VLAN20重新封装，再从同一Trunk带VID20返回。VLANIF与交换模块的配合实现这次转换，不需要把物理上联配置成第三个IP网关。</p>
+<p>先查询VLANIF状态及两条直连路由，再分别ping网关、ping对端。图4的上联抓包同样应体现VID10→路由→VID20。若配置存在但VLANIF未正常Up，检查该VLAN是否有可用成员、上联状态与放行情况，不能仅凭创建过VLANIF就认定路由有效。</p>
+<div class="note info simple"><p>注意：VLAN20网关必须是192.168.20.254，不能误填192.168.10.254。三组实现是替代方案，不要让R1和L3_SW同时在同一二层网络发布相同网关IP。换组前恢复或换用干净设备。</p>
+</div>
+
+<h3 id="查询命令与排查顺序"><a href="#查询命令与排查顺序" class="headerlink" title="查询命令与排查顺序"></a>查询命令与排查顺序</h3><p style="text-align: center;"><small>表 4 查询命令</small></p>
+
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>观察内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>display current-configuration</code></td>
+<td>全部配置，核对是否有残留</td>
+</tr>
+<tr>
+<td>接口视图下 <code>display this</code></td>
+<td>当前接口的Access、Trunk、IP或策略</td>
+</tr>
+<tr>
+<td><code>display vlan</code></td>
+<td>VLAN创建、成员与放行情况</td>
+</tr>
+<tr>
+<td><code>display mac-address</code></td>
+<td>MAC、VLAN与物理出接口</td>
+</tr>
+<tr>
+<td><code>display arp all</code></td>
+<td>网关与终端的邻居映射</td>
+</tr>
+<tr>
+<td><code>display ip routing-table</code></td>
+<td>有效直连路由及其出口</td>
+</tr>
+<tr>
+<td><code>display ip interface brief</code></td>
+<td>三层接口的IP与状态</td>
+</tr>
+<tr>
+<td><code>display interface GigabitEthernet 0/0/1</code></td>
+<td>指定接口详细状态与计数</td>
+</tr>
+<tr>
+<td><code>display interface brief</code></td>
+<td>全部接口简要状态</td>
+</tr>
+</tbody></table>
+<p>接口ID是需要替换的参数，不能直接输入字面量ID。按“链路→VLAN与标签→网关与ARP→路由→策略与终端服务”逐步排查，配完命令不等于每一层都已有效。</p>
+<h2 id="配置案例"><a href="#配置案例" class="headerlink" title="配置案例"></a>配置案例</h2><h3 id="公司三部门互访"><a href="#公司三部门互访" class="headerlink" title="公司三部门互访"></a>公司三部门互访</h3><p>R1的GE0&#x2F;0&#x2F;1接SW1的GE0&#x2F;0&#x2F;1，SW1下挂市场部与技术部，所以上联需要Trunk；R1的GE0&#x2F;0&#x2F;2接SW2的GE0&#x2F;0&#x2F;2，SW2只接总经办，采用Access10与R1物理网关对接。不要把左边两个VLAN都配到同一个普通物理口IP上。</p>
+<p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-27-datacom-08-inter-vlan-company.png" alt="R1通过子接口承载市场部和技术部，通过另一物理接口连接总经办"></p>
+<p style="text-align: center;"><small>图 5 公司三部门实验</small></p>
+
+<p style="text-align: center;"><small>表 5 部门地址与网关</small></p>
+
+<table>
+<thead>
+<tr>
+<th>部门</th>
+<th>VLAN</th>
+<th>原规划网段</th>
+<th>本次补齐的测试主机</th>
+<th>本次补齐的网关</th>
+<th>接入口</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>总经办</td>
+<td>10</td>
+<td>192.168.10.0&#x2F;25</td>
+<td>192.168.10.2&#x2F;25</td>
+<td>192.168.10.126</td>
+<td>SW2 GE0&#x2F;0&#x2F;1</td>
+</tr>
+<tr>
+<td>市场部</td>
+<td>20</td>
+<td>192.168.20.0&#x2F;23</td>
+<td>192.168.20.2&#x2F;23</td>
+<td>192.168.20.254</td>
+<td>SW1 GE0&#x2F;0&#x2F;2</td>
+</tr>
+<tr>
+<td>技术部</td>
+<td>40</td>
+<td>192.168.40.0&#x2F;24</td>
+<td>192.168.40.2&#x2F;24</td>
+<td>192.168.40.254</td>
+<td>SW1 GE0&#x2F;0&#x2F;3</td>
+</tr>
+</tbody></table>
+<p>原规划给出网段，没有指定主机与网关地址。表5是为执行补齐的一套明确地址：&#x2F;25可用范围为.1—.126，不能继续照搬前面实验的192.168.10.254。市场部&#x2F;23掩码是255.255.254.0，覆盖192.168.20.0—192.168.21.255。</p>
+<div class="tabs"><div class="nav-tabs"><button type="button" class="tab active">R1</button><button type="button" class="tab">SW1</button><button type="button" class="tab">SW2</button></div><div class="tab-contents"><div class="tab-item-content active"><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">system-view</span><br><span class="line">sysname R1</span><br><span class="line">interface GigabitEthernet 0/0/1</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">interface GigabitEthernet 0/0/1.20</span><br><span class="line"> dot1q termination vid 20</span><br><span class="line"> ip address 192.168.20.254 23</span><br><span class="line"> arp broadcast enable</span><br><span class="line"> quit</span><br><span class="line">interface GigabitEthernet 0/0/1.40</span><br><span class="line"> dot1q termination vid 40</span><br><span class="line"> ip address 192.168.40.254 24</span><br><span class="line"> arp broadcast enable</span><br><span class="line"> quit</span><br><span class="line">interface GigabitEthernet 0/0/2</span><br><span class="line"> ip address 192.168.10.126 25</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">return</span><br></pre></td></tr></table></figure></div><div class="tab-item-content"><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">system-view</span><br><span class="line">sysname SW1</span><br><span class="line">vlan batch 20 40</span><br><span class="line">interface GigabitEthernet 0/0/1</span><br><span class="line"> port link-type trunk</span><br><span class="line"> undo port trunk allow-pass vlan 1</span><br><span class="line"> port trunk allow-pass vlan 20 40</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">interface GigabitEthernet 0/0/2</span><br><span class="line"> port link-type access</span><br><span class="line"> port default vlan 20</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">interface GigabitEthernet 0/0/3</span><br><span class="line"> port link-type access</span><br><span class="line"> port default vlan 40</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">return</span><br></pre></td></tr></table></figure></div><div class="tab-item-content"><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">system-view</span><br><span class="line">sysname SW2</span><br><span class="line">vlan batch 10</span><br><span class="line">interface GigabitEthernet 0/0/2</span><br><span class="line"> port link-type access</span><br><span class="line"> port default vlan 10</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">interface GigabitEthernet 0/0/1</span><br><span class="line"> port link-type access</span><br><span class="line"> port default vlan 10</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">return</span><br></pre></td></tr></table></figure></div></div><div class="tab-to-top"><button type="button" aria-label="scroll to top"><i class="fas fa-arrow-up"></i></button></div></div>
+
+<p>市场部访问技术部时，请求以VID20进入R1的.20，经路由从.40带VID40回到SW1；访问总经办时，则从GE0&#x2F;0&#x2F;2以无标签帧送往SW2。R1应有三个有效直连网段，三个部门之间不需要另加静态路由。</p>
+<ol>
+<li>三个测试终端先各自ping表5的网关。</li>
+<li>市场部ping技术部、市场部ping总经办、技术部ping总经办，再逐一反向测试。</li>
+<li>查R1的ARP与三条直连路由；在R1—SW1线上看VID20&#x2F;40，在R1—SW2线上看无标签业务。</li>
+<li>验证部门内部互访时，可在同部门空闲Access端口补接第二台不冲突的主机，沿用该部门掩码与网关，再测试；原图每部门只有一台示意终端，单台不能证明内部两台之间互通。</li>
+</ol>
+<div class="note info simple"><p>注意：总经办使用&#x2F;25，市场部使用&#x2F;23，不能把所有掩码都改成&#x2F;24。若两个子接口都不通，先查Trunk与父接口；只有总经办失败则查独立物理链路和Access10。清理、换组时不要留下前面.10.254&#x2F;24的旧网关。</p>
+</div>
+
+<h3 id="校园互访与监控隔离"><a href="#校园互访与监控隔离" class="headerlink" title="校园互访与监控隔离"></a>校园互访与监控隔离</h3><p>学生与教师要能跨VLAN互访，并访问官网；两台接入交换机上的监控可以在VLAN30内部互访，但不能通过网关进入其他业务。汇聚发布四个网关，因此除了VLANIF，还要补充必要的隔离策略。下面明确给出这部分补充配置，不把“不同VLAN”当成路由后的自动隔离。</p>
+<p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-27-datacom-08-inter-vlan-campus.png" alt="L3_SW1连接两台接入交换机及官网服务器，标明学生教师监控的VLAN与接口"></p>
+<p style="text-align: center;"><small>图 6 校园业务实验</small></p>
+
+<p style="text-align: center;"><small>表 6 校园地址与接入口补齐</small></p>
+
+<table>
+<thead>
+<tr>
+<th>终端</th>
+<th>VLAN与原规划网段</th>
+<th>本次测试地址</th>
+<th>网关</th>
+<th>接入口</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>官网</td>
+<td>50，10.10.10.0&#x2F;30</td>
+<td>10.10.10.2&#x2F;30</td>
+<td>10.10.10.1</td>
+<td>L3_SW1 GE0&#x2F;0&#x2F;3</td>
+</tr>
+<tr>
+<td>学生A</td>
+<td>100，192.168.100.0&#x2F;24</td>
+<td>192.168.100.2&#x2F;24</td>
+<td>192.168.100.254</td>
+<td>L2_SW2 GE0&#x2F;0&#x2F;2</td>
+</tr>
+<tr>
+<td>学生B</td>
+<td>100，同上</td>
+<td>192.168.100.3&#x2F;24</td>
+<td>同上</td>
+<td>L2_SW3 GE0&#x2F;0&#x2F;3</td>
+</tr>
+<tr>
+<td>教师A</td>
+<td>200，192.168.200.0&#x2F;24</td>
+<td>192.168.200.2&#x2F;24</td>
+<td>192.168.200.254</td>
+<td>L2_SW2 GE0&#x2F;0&#x2F;3</td>
+</tr>
+<tr>
+<td>教师B</td>
+<td>200，同上</td>
+<td>192.168.200.3&#x2F;24</td>
+<td>同上</td>
+<td>L2_SW3 GE0&#x2F;0&#x2F;2</td>
+</tr>
+<tr>
+<td>监控A</td>
+<td>30，192.168.30.0&#x2F;24</td>
+<td>192.168.30.2&#x2F;24</td>
+<td>192.168.30.254</td>
+<td>L2_SW2 GE0&#x2F;0&#x2F;4</td>
+</tr>
+<tr>
+<td>监控B</td>
+<td>30，同上</td>
+<td>192.168.30.3&#x2F;24</td>
+<td>同上</td>
+<td>L2_SW3 GE0&#x2F;0&#x2F;4</td>
+</tr>
+</tbody></table>
+<p>表6的终端与网关地址是按原网段补齐的执行样例。&#x2F;30服务器子网只有.1和.2两个普通可用地址，.0是网络地址，.3是广播地址。两条接入上联只需透传30、100、200，VLAN50仅用于汇聚本地服务器口。</p>
+<div class="tabs"><div class="nav-tabs"><button type="button" class="tab active">L3_SW1</button><button type="button" class="tab">L2_SW2</button><button type="button" class="tab">L2_SW3</button></div><div class="tab-contents"><div class="tab-item-content active"><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">system-view</span><br><span class="line">sysname L3_SW1</span><br><span class="line">vlan batch 30 50 100 200</span><br><span class="line">acl number 3000</span><br><span class="line"> rule 5 permit ip source 192.168.30.0 0.0.0.255 destination 192.168.30.0 0.0.0.255</span><br><span class="line"> rule 10 deny ip source 192.168.30.0 0.0.0.255</span><br><span class="line"> rule 15 deny ip destination 192.168.30.0 0.0.0.255</span><br><span class="line"> rule 20 permit ip</span><br><span class="line"> quit</span><br><span class="line">interface GigabitEthernet 0/0/1</span><br><span class="line"> port link-type trunk</span><br><span class="line"> undo port trunk allow-pass vlan 1</span><br><span class="line"> port trunk allow-pass vlan 30 100 200</span><br><span class="line"> undo shutdown</span><br><span class="line"> traffic-filter inbound acl 3000</span><br><span class="line"> quit</span><br><span class="line">interface GigabitEthernet 0/0/2</span><br><span class="line"> port link-type trunk</span><br><span class="line"> undo port trunk allow-pass vlan 1</span><br><span class="line"> port trunk allow-pass vlan 30 100 200</span><br><span class="line"> undo shutdown</span><br><span class="line"> traffic-filter inbound acl 3000</span><br><span class="line"> quit</span><br><span class="line">interface GigabitEthernet 0/0/3</span><br><span class="line"> port link-type access</span><br><span class="line"> port default vlan 50</span><br><span class="line"> undo shutdown</span><br><span class="line"> traffic-filter inbound acl 3000</span><br><span class="line"> quit</span><br><span class="line">interface Vlanif 50</span><br><span class="line"> ip address 10.10.10.1 30</span><br><span class="line"> quit</span><br><span class="line">interface Vlanif 100</span><br><span class="line"> ip address 192.168.100.254 24</span><br><span class="line"> quit</span><br><span class="line">interface Vlanif 200</span><br><span class="line"> ip address 192.168.200.254 24</span><br><span class="line"> quit</span><br><span class="line">interface Vlanif 30</span><br><span class="line"> ip address 192.168.30.254 24</span><br><span class="line"> quit</span><br><span class="line">return</span><br></pre></td></tr></table></figure></div><div class="tab-item-content"><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">system-view</span><br><span class="line">sysname L2_SW2</span><br><span class="line">vlan batch 30 100 200</span><br><span class="line">interface GigabitEthernet 0/0/1</span><br><span class="line"> port link-type trunk</span><br><span class="line"> undo port trunk allow-pass vlan 1</span><br><span class="line"> port trunk allow-pass vlan 30 100 200</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">interface GigabitEthernet 0/0/2</span><br><span class="line"> port link-type access</span><br><span class="line"> port default vlan 100</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">interface GigabitEthernet 0/0/3</span><br><span class="line"> port link-type access</span><br><span class="line"> port default vlan 200</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">interface GigabitEthernet 0/0/4</span><br><span class="line"> port link-type access</span><br><span class="line"> port default vlan 30</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">return</span><br></pre></td></tr></table></figure></div><div class="tab-item-content"><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">system-view</span><br><span class="line">sysname L2_SW3</span><br><span class="line">vlan batch 30 100 200</span><br><span class="line">interface GigabitEthernet 0/0/1</span><br><span class="line"> port link-type trunk</span><br><span class="line"> undo port trunk allow-pass vlan 1</span><br><span class="line"> port trunk allow-pass vlan 30 100 200</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">interface GigabitEthernet 0/0/2</span><br><span class="line"> port link-type access</span><br><span class="line"> port default vlan 200</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">interface GigabitEthernet 0/0/3</span><br><span class="line"> port link-type access</span><br><span class="line"> port default vlan 100</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">interface GigabitEthernet 0/0/4</span><br><span class="line"> port link-type access</span><br><span class="line"> port default vlan 30</span><br><span class="line"> undo shutdown</span><br><span class="line"> quit</span><br><span class="line">return</span><br></pre></td></tr></table></figure></div></div><div class="tab-to-top"><button type="button" aria-label="scroll to top"><i class="fas fa-arrow-up"></i></button></div></div>
+
+<p>这组实验将ACL3000绑定在L3_SW1的GE0&#x2F;0&#x2F;1、GE0&#x2F;0&#x2F;2、GE0&#x2F;0&#x2F;3三个<strong>物理接口的入方向</strong>，不在VLANIF视图配置traffic-filter。前两个接口接收两台接入交换机的业务，第三个接收官网服务器的业务，覆盖本组终端流量进入汇聚的三个入口。</p>
+<p>规则按编号顺序匹配，命中后采用对应动作。rule5先允许源和目的都属于192.168.30.0&#x2F;24的IP流量；rule10拒绝监控发往其他网段，rule15拒绝其他网段发往监控，rule20允许剩余IP流量。<strong>物理接口入方向同时会经过二层转发的业务，因此不能把原来两条deny直接搬过来就结束，必须先放行监控内部互访。</strong></p>
+<p>监控A访问监控B时，IP源为192.168.30.2、目的为192.168.30.3，帧经接入上联进入汇聚，匹配rule5后继续在VLAN30内二层交换。监控A访问学生时，源属于30网段但目的不属于30，匹配rule10；学生访问监控时匹配rule15。官网服务器发往监控的请求从GE0&#x2F;0&#x2F;3进入，同样被rule15拒绝。学生、教师与官网之间则匹配rule20，随后按正常路由转发。</p>
+<p>ARP不属于这份高级ACL匹配的IPv4业务，本组规则也没有配置二层ARP过滤。这里按地址正确的IPv4终端和图6的全部接线验证，不把它当成防地址伪造或IPv6隔离的完整方案；汇聚自己产生的报文也不能冒充“三个物理入口已经过滤”的证据。</p>
+<p>配置前在实际的GE接口视图用 <code>traffic-filter inbound ?</code> 核对支持的语法，创建ACL后再绑定。<a target="_blank" rel="noopener" href="https://info.support.huawei.com/network/ptmngsys/Web/tsrev_ar/en/content/ar/02_edesk_web_cannot_log_in/edesk_web_cannot_log_in_edesk007.html">华为的物理接口过滤示例</a>展示了GE接口上的配置与检查方法；型号和版本的功能范围仍需对应确认，不能用其他产品的VLANIF示例代替本机支持情况。</p>
+<h4 id="验证不能只看监控不通"><a href="#验证不能只看监控不通" class="headerlink" title="验证不能只看监控不通"></a>验证不能只看监控不通</h4><p>先在隔离实验里完成VLAN与网关，确认学生、教师、官网的正向需求可用，再应用ACL并按表7逐项测试。第一轮执行配置时，暂缓三个GE接口下的 <code>traffic-filter inbound acl 3000</code> 绑定，其余VLAN、接口、IP与ACL规则可以先创建；第二轮分别进入GE0&#x2F;0&#x2F;1、GE0&#x2F;0&#x2F;2、GE0&#x2F;0&#x2F;3补上绑定，形成上面标签页里的最终配置。只创建规则并不会提前改变转发。测试机与服务器的主机防火墙允许相应测试；监控可以暂用同地址PC模拟。</p>
+<p style="text-align: center;"><small>表 7 校园业务验证矩阵</small></p>
+
+<table>
+<thead>
+<tr>
+<th>发起端与目标</th>
+<th>测试</th>
+<th>预期与证据</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>学生A→学生B、教师A→教师B</td>
+<td>ping各自另一台</td>
+<td>同VLAN跨交换机能通，查MAC与Trunk</td>
+</tr>
+<tr>
+<td>学生A→教师A，反向再测</td>
+<td>ping192.168.200.2；反向ping192.168.100.2</td>
+<td>跨VLAN能通，查网关ARP与直连路由</td>
+</tr>
+<tr>
+<td>学生A、教师A→官网</td>
+<td>ping10.10.10.2，再访问<a target="_blank" rel="noopener" href="http://10.10.10.2/">http://10.10.10.2/</a></td>
+<td>IP可达且HTTP服务返回页面</td>
+</tr>
+<tr>
+<td>监控A→监控B，反向再测</td>
+<td>ping192.168.30.3；反向ping192.168.30.2</td>
+<td>VLAN30内部能通，不走网关</td>
+</tr>
+<tr>
+<td>监控A→学生、教师、官网</td>
+<td>逐项ping上述已知可用端点</td>
+<td>被策略拒绝，核对ACL绑定与相应规则</td>
+</tr>
+<tr>
+<td>学生、教师、官网→监控A</td>
+<td>逐项ping192.168.30.2</td>
+<td>反方向也拒绝</td>
+</tr>
+</tbody></table>
+<p>在L3_SW1查询 <code>display acl 3000</code>，再分别进入三个GE接口执行 <code>display this</code>，确认绑定位置和方向。监控A访问监控B时检查rule5对应流量，监控发往学生检查rule10，学生或官网发往监控检查rule15，其他允许项检查rule20。若平台提供ACL命中统计，记录测试前后增量；统计不显示时结合入口请求、出口是否转发及受控撤销策略的对照验证，不编造计数。</p>
+<p>仅在隔离实验中，可在某个被测入口短暂执行 <code>undo traffic-filter inbound acl 3000</code>，其他条件不变时，原先在该入口被拒绝的请求应能继续向目标转发；但完整往返仍可能在回复进入另一个已绑定入口时被拦，所以不能保证只撤销一个入口后ping立刻成功。若要验证完整往返，应按实际请求与回复路径临时撤销相关入口的绑定，再重新应用并复测，不要同时修改IP或路由。</p>
+<div class="note info simple"><p>注意：监控内部互访失败时，先检查rule5是否存在且排在拒绝规则前，再查VLAN30二层路径。监控访问本子网网关192.168.30.254也匹配rule5，在设备允许响应时可以成功，这不等于跨VLAN隔离失效。官网能ping但网页打不开时，检查HTTP服务与端口策略。测试完成恢复三个入口的绑定并保存确认后的配置。</p>
+</div>
+
+<h2 id="重点回顾"><a href="#重点回顾" class="headerlink" title="重点回顾"></a>重点回顾</h2><h3 id="二层接口与三层接口"><a href="#二层接口与三层接口" class="headerlink" title="二层接口与三层接口"></a>二层接口与三层接口</h3><p style="text-align: center;"><small>表 8 接口角色对照</small></p>
+
+<table>
+<thead>
+<tr>
+<th>比较项</th>
+<th>二层业务接口</th>
+<th>三层业务接口</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>MAC身份</td>
+<td>转发普通过境帧时不作为主机网关；设备和端口仍可有MAC用于控制功能</td>
+<td>在以太网三层交付中使用接口或系统MAC作为网关身份</td>
+</tr>
+<tr>
+<td>IP配置</td>
+<td>不直接在普通二层业务口配置网关IP</td>
+<td>可在物理三层口、子接口或VLANIF配置IP</td>
+</tr>
+<tr>
+<td>广播范围</td>
+<td>按VLAN转发，不能把“二层口”理解成不支持广播隔离</td>
+<td>不把一个VLAN的普通二层广播路由到另一个VLAN</td>
+</tr>
+<tr>
+<td>处理</td>
+<td>按VLAN与目的MAC查表，未知单播按允许范围泛洪</td>
+<td>终结本机二层交付后按目的IP查路由，无匹配路由则不能继续正常转发</td>
+</tr>
+<tr>
+<td>典型接口</td>
+<td>二层交换机业务口；许多三层交换机默认二层物理口；可切换为二层的部分路由器接口</td>
+<td>路由器三层物理口、子接口、Loopback；可切换成三层的交换机物理口；VLANIF</td>
+</tr>
+</tbody></table>
+<p>因此不能绝对地说“二层接口没有MAC”“二层设备不会隔离广播域”。比较的是本次数据转发角色，不是抹去设备控制功能，也不是忽略VLAN本身的广播边界。</p>
+<h3 id="标签在哪里添加和剥离"><a href="#标签在哪里添加和剥离" class="headerlink" title="标签在哪里添加和剥离"></a>标签在哪里添加和剥离</h3><p style="text-align: center;"><small>表 9 按三层网关收发方向看标签</small></p>
+
+<table>
+<thead>
+<tr>
+<th>实现方式</th>
+<th>网关接收前谁组织VLAN归属或标签</th>
+<th>接收时谁终结业务标签</th>
+<th>发送后谁按目标VLAN组织交付</th>
+<th>本例交给普通PC前谁去标签</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>物理三层口</td>
+<td>对接二层交换机在内部按Access归类</td>
+<td>交换机Access出口先去标签，网关线上收无标签帧</td>
+<td>路由器发无标签帧，对接交换机按Access归入目标VLAN</td>
+<td>对接交换机的主机Access出口</td>
+</tr>
+<tr>
+<td>Dot1q子接口</td>
+<td>交换机Trunk出口带VID</td>
+<td>路由器对应子接口终结VID</td>
+<td>路由器按出子接口带目标VID，交换机接收</td>
+<td>交换机主机Access出口</td>
+</tr>
+<tr>
+<td>VLANIF</td>
+<td>入站Trunk承载VID，交换模块关联VLANIF</td>
+<td>相应VLANIF的三层逻辑处理终结入站封装</td>
+<td>路由与交换模块选择目标VLAN，实际标签由出端口规则决定</td>
+<td>下联交换机主机Access出口</td>
+</tr>
+</tbody></table>
+<p>标签表描述的是逻辑交付与线缆封装，不能理解为所有交换机内部都保存一份字节完全相同的802.1Q头。把VLANIF的网关功能与物理端口最终是否带标签区分开，再结合抓包位置判断。</p>
+<p>二层查MAC表、三层查路由表、ARP解决IPv4下一跳的链路地址映射，是理解三张表的主线。网关不只是一个IP：还需要有效VLAN、可用成员、正确标签和允许业务的策略。</p>
+<h3 id="面试问题"><a href="#面试问题" class="headerlink" title="面试问题"></a>面试问题</h3><details class="folding-tag" cyan><summary> VLAN之间怎样实现通信？ </summary>
+              <div class='content'>
+              <p>VLAN隔离的是二层广播范围，跨VLAN通常要通过三层网关转发。常见做法是用路由器的不同物理接口、同一物理口的Dot1q子接口，或者用三层交换机的VLANIF提供各子网网关。主机先按掩码判断目标在远端，再交给自己的网关，网关查路由并重新封装到目标VLAN。能否访问还取决于路由、ARP和策略，不是Trunk放通多个VLAN就自动互通。</p>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 单臂路由和VLANIF有什么区别？ </summary>
+              <div class='content'>
+              <p>单臂路由是在路由器一个物理口上建立多个三层子接口，通过VID区分业务；跨VLAN流量会经过交换机到路由器，再从同一物理链路返回。VLANIF则把网关放在三层交换机上，由交换和路由功能在设备内部配合。两者都要配置正确的终端网关和二层承载，但网关所在位置、接口类型和实际流量经过的物理路径不同。</p>
+              </div>
+            </details>
+
+<details class="folding-tag" green><summary> 跨VLAN时IP和MAC怎样变化？ </summary>
+              <div class='content'>
+              <p>没有NAT等额外处理时，源、目的IP通常保持为两端主机地址；MAC则随三层交付重新封装。比如PC1先把帧发给VLAN10的网关，网关转发到VLAN20时，新的源MAC是出站网关身份，目的MAC是PC2。IPv4 TTL还会在路由转发时递减。分析时我会先确定抓包点在哪条链路，再比较方向、MAC和VID，避免把不同阶段的字段混在一起。</p>
+              </div>
+            </details>
+
+<details class="folding-tag" cyan><summary> VLANIF配了IP，为什么还是不通？ </summary>
+              <div class='content'>
+              <p>配置IP只完成了一部分。我会先确认VLANIF状态和相应直连路由，再检查VLAN是否创建、成员链路是否有效、Trunk是否允许该VID。接着看终端网关和ARP是否正确，最后检查访问策略与主机服务。比如上联漏放VLAN20，接口配置里虽然能看到VLANIF20地址，但不等于终端已经能到这个网关。</p>
+              </div>
+            </details>
+
+<details class="folding-tag" blue><summary> 监控单独放一个VLAN，为什么还要访问控制？ </summary>
+              <div class='content'>
+              <p>单独划VLAN可以阻断直接的二层互通，但创建三层网关并形成路由后，流量仍可能通过网关跨VLAN。如果需求是监控只能内部通信，就还要限制跨网段访问。这个案例保留监控VLANIF，把ACL绑定到汇聚的三个物理入口，先放行监控子网内部互访，再拒绝源或目的为监控子网的其他IP流量。因为物理口也会处理二层过境流量，所以内部放行规则不能漏。验证时既测禁止项，也测允许项，才能排除单纯断链造成的假隔离。</p>
+              </div>
+            </details>
+<span hidden data-post-admin-edit="/admin/#/collections/posts/entries/2026-11-27-datacom-08-inter-vlan"></span></article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://www.ghib6.com">XBY</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://www.ghib6.com/2026/11/27/2026-11-27-datacom-08-inter-vlan/">https://www.ghib6.com/2026/11/27/2026-11-27-datacom-08-inter-vlan/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://www.ghib6.com" target="_blank">Ghib6</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/VLAN/">VLAN</a><a class="post-meta__tags" href="/tags/%E5%8D%95%E8%87%82%E8%B7%AF%E7%94%B1/">单臂路由</a><a class="post-meta__tags" href="/tags/VLANIF/">VLANIF</a><a class="post-meta__tags" href="/tags/ACL/">ACL</a></div><div class="post-share"><div class="social-share" data-image="https://picbed.ghib6.com/img/posts/2026-11-27-datacom-08-inter-vlan-vlanif.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/11/27/2026-11-27-datacom-09-transport/" title="数通09：传输层"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-27-datacom-09-transport-handshake.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">数通09：传输层</div></div><div class="info-2"><div class="info-item-1">网关和路由把数据送到目标主机之后，主机还要知道：这份数据交给浏览器、文件服务，还是其他应用？传输层通过端口等信息区分通信端点，再由具体协议提供相应的传输服务。 这一篇按传输层作用、TCP工作原理、UDP工作原理展开。应用端口表保留原有行列，重点回顾保留五道问题的顺序和问法；容易误解的端口、标志位和窗口问题，在对应位置单独说明。 说明：文中的序号、窗口和报文是过程示例，不是实测抓包输出。配图为依据协议过程制作的示意图；本篇没有独立的设备配置实验，不另外添加一套路由器配置来替代协议讲解。     传输层的作用从主机交付到通信端点在TCP&#x2F;IP五层模型中，从物理层往上数，传输层是第四层，位于网络层与应用层之间。它接收应用数据，加入传输层首部，帮助操作系统把收到的数据交给正确的通信端点，也就是完成复用与分用。 TCP、UDP、SCTP都是传输层协议。TCP提供可靠、有序的字节流；UDP提供无连接的数据报服务，不在协议本身实现确认和重传；SCTP也支持可靠传输，常见于信令等场景。 **可靠性和流量控制是具体协议的能力，不能说所有传输层协议都保证正确送达。**UDP应用需要这些能力...</div></div></div></a><a class="pagination-related" href="/2026/11/26/2026-11-26-datacom-07-ip-routing/" title="数通07：IP路由基础"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-26-datacom-07-ip-routing-table.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">数通07：IP路由基础</div></div><div class="info-2"><div class="info-item-1">上一篇把两个网段接在同一台路由器上，靠直连路由就能转发。现在目标在另一台路由器后面：设备从哪里知道该往哪走，静态路由又该填哪个地址？ 这一篇按路由概述、路由表、转发流程、高级特性和配置案例展开。先读表，再配置，最后对照表项与流量变化。 说明：截图用于读表，配置步骤和通信结果为待验证的实验预期，不代表已在真机执行。各案例独立，地址与接口不能混用。命令采用华为风格，接口编号、默认优先级和特性支持需在实际设备上确认。拓扑均为按案例接线制作的eNSP风格示意图，不是模拟器实测截图。     路由基本概述为什么跨网段需要路由路由是指导IP报文转发的路径信息。主机把远端流量交给网关，网关再查询目的地址，决定下一跳和出接口。路由器、三层交换机、防火墙都可以承担三层转发。 **知道下一跳，不等于知道整条路径的所有设备。**每台路由设备按自己的表继续转发；请求能到达目标，也还要检查回复有没有路可走。 路由表先读一次查询结果1display ip routing-table  图1是一份路由表样例。先找目的网段，再看来源、下一跳和出接口，不要一开始就盯着优先级数字。  图 1 路由表查询样例  表 ...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2026/11/25/2026-11-25-datacom-05-vlan/" title="数通05：VLAN原理与配置"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-25-datacom-05-vlan-vlan-topology-generated.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-11-25</div><div class="info-item-2">数通05：VLAN原理与配置</div></div><div class="info-2"><div class="info-item-1">办公室搬到了两层楼，每层都有一台交换机。行政和财务的电脑分散在两层：同部门要能互相访问，不同部门又要分开管理。难道要给每个部门各买一套交换机、各拉一条网线吗？ 不用。VLAN 就是解决这类问题的一种办法。 上一篇讲过，交换机会学习源 MAC，再按目的 MAC 转发。同一个广播域里的设备，还会收到广播和部分泛洪流量。这次要做的是：共用交换机，但让不同部门的广播各自留在自己的范围内。 VLAN 的中文名是“虚拟局域网”，主要用来划分二层广播域。下面从广播为什么需要隔离讲起，再看标签、接口类型和配置，最后把实验题与面试题一起整理。 说明：下面是可自行搭建的实验和预期结果，还没有在真机上实测。命令采用华为常见 VRP 写法，接口名用 GigabitEthernet0&#x2F;0&#x2F;x。实际操作时先核对型号、版本和接口名；已有业务的设备不要直接套用整段配置。     VLAN 的产生先看广播的去向A 想找同网段设备的 MAC，会先发 ARP 广播。如果大家都在一个大广播域里，财务电脑找打印机，行政电脑也会收到这份广播。交换机不知道目的 MAC 时，还会把未知单播复制到同 VLAN...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/touxiang.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">XBY</div><div class="author-info-description">这是一个未完成的博客</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">29</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">89</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">7</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/Ghib6"><i class="fab fa-github"></i><span>前往妙妙小屋</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/Ghib6" target="_blank" title="Github"><i class="fab fa-github"></i></a><a class="social-icon" href="https://mail.163.com/" target="_blank" title="Email"><i class="fa fa-envelope"></i></a><a class="social-icon" href="https://space.bilibili.com/324065498" target="_blank" title="bilibili"><i class="fab fa-bilibili"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">欢迎来到我的博客！</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%8A%80%E6%9C%AF%E8%83%8C%E6%99%AF"><span class="toc-number">1.</span> <span class="toc-text">技术背景</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%9E%E7%8E%B0%E6%96%B9%E5%BC%8F"><span class="toc-number">2.</span> <span class="toc-text">实现方式</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E4%B8%89%E5%B1%82%E9%80%9A%E4%BF%A1%E8%BD%AC%E5%8F%91%E8%BF%87%E7%A8%8B"><span class="toc-number">3.</span> <span class="toc-text">二三层通信转发过程</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%88%E7%9C%8BPC1%E5%88%B0PC2%E7%9A%84%E8%B7%AF%E5%BE%84"><span class="toc-number">3.1.</span> <span class="toc-text">先看PC1到PC2的路径</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%89%E5%BC%A0%E8%A1%A8%E5%88%86%E5%88%AB%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88"><span class="toc-number">3.2.</span> <span class="toc-text">三张表分别解决什么</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%85%8D%E7%BD%AE%E5%91%BD%E4%BB%A4"><span class="toc-number">4.</span> <span class="toc-text">配置命令</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%9E%E9%AA%8C%E4%B8%80%EF%BC%9A%E8%B7%AF%E7%94%B1%E5%99%A8%E7%89%A9%E7%90%86%E6%8E%A5%E5%8F%A3"><span class="toc-number">4.1.</span> <span class="toc-text">实验一：路由器物理接口</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%9E%E9%AA%8C%E4%BA%8C%EF%BC%9A%E5%8D%95%E8%87%82%E8%B7%AF%E7%94%B1"><span class="toc-number">4.2.</span> <span class="toc-text">实验二：单臂路由</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%9E%E9%AA%8C%E4%B8%89%EF%BC%9AVLANIF%E7%BD%91%E5%85%B3"><span class="toc-number">4.3.</span> <span class="toc-text">实验三：VLANIF网关</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9F%A5%E8%AF%A2%E5%91%BD%E4%BB%A4%E4%B8%8E%E6%8E%92%E6%9F%A5%E9%A1%BA%E5%BA%8F"><span class="toc-number">4.4.</span> <span class="toc-text">查询命令与排查顺序</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%85%8D%E7%BD%AE%E6%A1%88%E4%BE%8B"><span class="toc-number">5.</span> <span class="toc-text">配置案例</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%AC%E5%8F%B8%E4%B8%89%E9%83%A8%E9%97%A8%E4%BA%92%E8%AE%BF"><span class="toc-number">5.1.</span> <span class="toc-text">公司三部门互访</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%A0%A1%E5%9B%AD%E4%BA%92%E8%AE%BF%E4%B8%8E%E7%9B%91%E6%8E%A7%E9%9A%94%E7%A6%BB"><span class="toc-number">5.2.</span> <span class="toc-text">校园互访与监控隔离</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%AA%8C%E8%AF%81%E4%B8%8D%E8%83%BD%E5%8F%AA%E7%9C%8B%E7%9B%91%E6%8E%A7%E4%B8%8D%E9%80%9A"><span class="toc-number">5.2.1.</span> <span class="toc-text">验证不能只看监控不通</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%87%8D%E7%82%B9%E5%9B%9E%E9%A1%BE"><span class="toc-number">6.</span> <span class="toc-text">重点回顾</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BA%8C%E5%B1%82%E6%8E%A5%E5%8F%A3%E4%B8%8E%E4%B8%89%E5%B1%82%E6%8E%A5%E5%8F%A3"><span class="toc-number">6.1.</span> <span class="toc-text">二层接口与三层接口</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%A0%87%E7%AD%BE%E5%9C%A8%E5%93%AA%E9%87%8C%E6%B7%BB%E5%8A%A0%E5%92%8C%E5%89%A5%E7%A6%BB"><span class="toc-number">6.2.</span> <span class="toc-text">标签在哪里添加和剥离</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%9D%A2%E8%AF%95%E9%97%AE%E9%A2%98"><span class="toc-number">6.3.</span> <span class="toc-text">面试问题</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/11/27/2026-11-27-datacom-09-transport/" title="数通09：传输层"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-27-datacom-09-transport-handshake.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="数通09：传输层"/></a><div class="content"><a class="title" href="/2026/11/27/2026-11-27-datacom-09-transport/" title="数通09：传输层">数通09：传输层</a><time datetime="2026-11-27T13:44:54.000Z" title="发表于 2026-11-27 13:44:54">2026-11-27</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/11/27/2026-11-27-datacom-08-inter-vlan/" title="数通08：VLAN间通信"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-27-datacom-08-inter-vlan-vlanif.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="数通08：VLAN间通信"/></a><div class="content"><a class="title" href="/2026/11/27/2026-11-27-datacom-08-inter-vlan/" title="数通08：VLAN间通信">数通08：VLAN间通信</a><time datetime="2026-11-27T09:18:43.000Z" title="发表于 2026-11-27 09:18:43">2026-11-27</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/11/26/2026-11-26-datacom-07-ip-routing/" title="数通07：IP路由基础"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-26-datacom-07-ip-routing-table.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="数通07：IP路由基础"/></a><div class="content"><a class="title" href="/2026/11/26/2026-11-26-datacom-07-ip-routing/" title="数通07：IP路由基础">数通07：IP路由基础</a><time datetime="2026-11-26T15:08:40.000Z" title="发表于 2026-11-26 15:08:40">2026-11-26</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/11/26/2026-11-26-datacom-06-network-layer/" title="数通06：网络层实验"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-26-datacom-06-network-layer-labs.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="数通06：网络层实验"/></a><div class="content"><a class="title" href="/2026/11/26/2026-11-26-datacom-06-network-layer/" title="数通06：网络层实验">数通06：网络层实验</a><time datetime="2026-11-26T14:40:06.000Z" title="发表于 2026-11-26 14:40:06">2026-11-26</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/11/25/2026-11-25-datacom-05-vlan/" title="数通05：VLAN原理与配置"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://picbed.ghib6.com/img/posts/2026-11-25-datacom-05-vlan-vlan-topology-generated.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="数通05：VLAN原理与配置"/></a><div class="content"><a class="title" href="/2026/11/25/2026-11-25-datacom-05-vlan/" title="数通05：VLAN原理与配置">数通05：VLAN原理与配置</a><time datetime="2026-11-25T08:50:00.000Z" title="发表于 2026-11-25 08:50:00">2026-11-25</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2020 - 2026 By XBY</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="translateLink" type="button" title="简繁转换">繁</button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="/js/tw_cn.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page/instantpage.min.js" type="module"></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js"></script><script src="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (false) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://hexo-twikoo.ghib6.com/',
+      region: '',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://hexo-twikoo.ghib6.com/',
+      region: '',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    GLOBAL_CONFIG_SITE.pageType === 'post' && getCount()
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script defer src="/js/light.js"></script><canvas id="universe"></canvas><script defer src="/js/universe.js"></script><script defer src="/js/cursor.js"></script><script defer src="/js/pjax-no-enter-animation.js?v=20260511"></script><script defer src="/js/webinfo-count.js?v=20260509"></script><script defer src="/js/post-admin-edit.js?v=20261125"></script><div class="aplayer no-destroy" data-id="1985708788" data-server="netease" data-type="song" data-fixed="true" data-mini="true" data-listFolded="false" data-order="random" data-preload="none" data-autoplay="false" muted></div><script id="canvas_nest" defer="defer" color="0,0,255" opacity="0.7" zIndex="-1" count="50" mobile="false" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/canvas-nest.min.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/activate-power-mode.min.js"></script><script>POWERMODE.colorful = true;
+POWERMODE.shake = true;
+POWERMODE.mobile = false;
+document.body.addEventListener('input', POWERMODE);
+</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/metingjs/dist/Meting.min.js"></script><script>(() => {
+  const destroyAplayer = () => {
+    if (window.aplayers) {
+      for (let i = 0; i < window.aplayers.length; i++) {
+        if (!window.aplayers[i].options.fixed) {
+          window.aplayers[i].destroy()
+        }
+      }
+    }
+  }
+
+  const runMetingJS = () => {
+    typeof loadMeting === 'function' && document.getElementsByClassName('aplayer').length && loadMeting()
+  }
+
+  btf.addGlobalFn('pjaxSend', destroyAplayer, 'destroyAplayer')
+  btf.addGlobalFn('pjaxComplete', loadMeting, 'runMetingJS')
+})()</script><script src="https://cdn.jsdelivr.net/npm/pjax/pjax.min.js"></script><script>(() => {
+  const pjaxSelectors = ["head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+  window.pjax = new Pjax({
+    elements: 'a:not([target="_blank"])',
+    selectors: pjaxSelectors,
+    cacheBust: false,
+    analytics: false,
+    scrollRestoration: false
+  })
+
+  const triggerPjaxFn = (val) => {
+    if (!val) return
+    Object.values(val).forEach(fn => {
+      try {
+        fn()
+      } catch (err) {
+        console.debug('Pjax callback failed:', err)
+      }
+    })
+  }
+
+  document.addEventListener('pjax:send', () => {
+    // removeEventListener
+    btf.removeGlobalFnEvent('pjaxSendOnce')
+    btf.removeGlobalFnEvent('themeChange')
+
+    // reset readmode
+    const $bodyClassList = document.body.classList
+    if ($bodyClassList.contains('read-mode')) $bodyClassList.remove('read-mode')
+
+    triggerPjaxFn(window.globalFn.pjaxSend)
+  })
+
+  document.addEventListener('pjax:complete', () => {
+    btf.removeGlobalFnEvent('pjaxCompleteOnce')
+    document.querySelectorAll('script[data-pjax]').forEach(item => {
+      const newScript = document.createElement('script')
+      const content = item.text || item.textContent || item.innerHTML || ""
+      Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+      newScript.appendChild(document.createTextNode(content))
+      item.parentNode.replaceChild(newScript, item)
+    })
+
+    triggerPjaxFn(window.globalFn.pjaxComplete)
+  })
+
+  document.addEventListener('pjax:error', e => {
+    if (e.request.status === 404) {
+      const usePjax = true
+      true
+        ? (usePjax ? pjax.loadUrl('/404.html') : window.location.href = '/404.html')
+        : window.location.href = e.request.responseURL
+    }
+  })
+})()</script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="local-search-input"><input placeholder="搜索文章" type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/js/local-search.js?v=20261125-space"></script></div></div><!-- hexo injector body_end start --><script defer src="/js/vendor/marked.js"></script><script defer src="/js/vendor/purify.js"></script><script defer src="/js/pet-assistant.js?v=20261127-stream-errors"></script><script data-pjax>
+  function butterfly_clock_anzhiyu_injector_config(){
+    var parent_div_git = document.getElementsByClassName('sticky_layout')[0];
+    var item_html = '<div class="card-widget card-clock"><div class="card-glass"><div class="card-background"><div class="card-content"><div id="hexo_electric_clock"><img class="entered loading" id="card-clock-loading" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://cdn.cbd.int/hexo-butterfly-clock-anzhiyu/lib/loading.gif" style="height: 120px; width: 100%;" data-ll-status="loading"/></div></div></div></div></div>';
+    console.log('已挂载butterfly_clock_anzhiyu')
+    if(parent_div_git) {
+      parent_div_git.insertAdjacentHTML("afterbegin",item_html)
+    }
+  }
+  var elist = 'null'.split(',');
+  var cpage = location.pathname;
+  var epage = '/';
+  var qweather_key = 'b16a1fa0e63c46a4b8f28abfb06ae3fe';
+  var gaud_map_key = 'e2b04289e870b005374ee030148d64fd&s=rsv3';
+  var baidu_ak_key = 'undefined';
+  var flag = 0;
+  var clock_rectangle = '113.34532,23.15624';
+  var clock_default_rectangle_enable = 'false';
+
+  for (var i=0;i<elist.length;i++){
+    if (cpage.includes(elist[i])){
+      flag++;
+    }
+  }
+
+  if ((epage ==='all')&&(flag == 0)){
+    butterfly_clock_anzhiyu_injector_config();
+  }
+  else if (epage === cpage){
+    butterfly_clock_anzhiyu_injector_config();
+  }
+  </script><script src="https://widget.qweather.net/simple/static/js/he-simple-common.js?v=2.0"></script><script data-pjax src="/js/electric-clock.js?v=20260509-ip"></script><script data-pjax>
+  function butterfly_footer_beautify_injector_config(){
+    var parent_div_git = document.getElementById('footer');
+    var item_html = '<div id="workboard"></div><p id="ghbdages"><a class="github-badge" target="_blank" href="https://hexo.io/" style="margin-inline:5px" data-title="博客框架为Hexo_v6.2.0" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Frame-Hexo-blue?style=flat&amp;logo=hexo" alt=""/></a><a class="github-badge" target="_blank" href="https://butterfly.js.org/" style="margin-inline:5px" data-title="主题版本Butterfly_v4.3.1" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Theme-Butterfly-6513df?style=flat&amp;logo=bitdefender" alt=""/></a><a class="github-badge" target="_blank" href="https://vercel.com/" style="margin-inline:5px" data-title="本站采用多线部署，主线路托管于Vercel" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Hosted-Vercel-brightgreen?style=flat&amp;logo=Vercel" alt=""/></a><a class="github-badge" target="_blank" href="https://dashboard.4everland.org/" style="margin-inline:5px" data-title="本站采用多线部署，备用线路托管于4EVERLAND" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Hosted-4EVERLAND-22DDDD?style=flat&amp;logo=IPFS" alt=""/></a><a class="github-badge" target="_blank" href="https://github.com/" style="margin-inline:5px" data-title="本站项目由Github托管" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Source-Github-d021d6?style=flat&amp;logo=GitHub" alt=""/></a><a class="github-badge" target="_blank" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" style="margin-inline:5px" data-title="本站采用知识共享署名-非商业性使用-相同方式共享4.0国际许可协议进行许可" title=""><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Copyright-BY--NC--SA%204.0-d42328?style=flat&amp;logo=Claris" alt=""/></a></p>';
+    console.log('已挂载butterfly_footer_beautify')
+    parent_div_git.insertAdjacentHTML("beforeend",item_html)
+    }
+  var elist = 'null'.split(',');
+  var cpage = location.pathname;
+  var epage = 'all';
+  var flag = 0;
+
+  for (var i=0;i<elist.length;i++){
+    if (cpage.includes(elist[i])){
+      flag++;
+    }
+  }
+
+  if ((epage ==='all')&&(flag == 0)){
+    butterfly_footer_beautify_injector_config();
+  }
+  else if (epage === cpage){
+    butterfly_footer_beautify_injector_config();
+  }
+  </script><script async src="/js/footer-runtime.js?v=20260509"></script><div class="js-pjax"><script async="async">var arr = document.getElementsByClassName('recent-post-item');
+for(var i = 0;i<arr.length;i++){
+    arr[i].classList.add('wow');
+    arr[i].classList.add('animate__zoomIn');
+    arr[i].setAttribute('data-wow-duration', '1s');
+    arr[i].setAttribute('data-wow-delay', '1s');
+    arr[i].setAttribute('data-wow-offset', '100');
+    arr[i].setAttribute('data-wow-iteration', '1');
+  }</script><script async="async">var arr = document.getElementsByClassName('card-widget');
+for(var i = 0;i<arr.length;i++){
+    arr[i].classList.add('wow');
+    arr[i].classList.add('animate__zoomIn');
+    arr[i].setAttribute('data-wow-duration', '');
+    arr[i].setAttribute('data-wow-delay', '');
+    arr[i].setAttribute('data-wow-offset', '');
+    arr[i].setAttribute('data-wow-iteration', '');
+  }</script></div><script defer src="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/wow.min.js"></script><script defer src="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/wow_init.js"></script><script async src="//at.alicdn.com/t/font_2032782_8d5kxvn09md.js"></script><script data-pjax src="https://npm.elemecdn.com/hexo-filter-gitcalendar/lib/gitcalendar.js"></script><script data-pjax>
+  function gitcalendar_injector_config(){
+      var parent_div_git = document.getElementById('gitZone');
+      var item_html = '<div class="recent-post-item" id="gitcalendarBar" style="width:100%;height:auto;padding:10px;"><style>#git_container{min-height: 280px}@media screen and (max-width:650px) {#git_container{min-height: 0px}}</style><div id="git_loading" style="width:10%;height:100%;margin:0 auto;display: block;"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 50 50" style="enable-background:new 0 0 50 50" xml:space="preserve"><path fill="#d0d0d0" d="M25.251,6.461c-10.318,0-18.683,8.365-18.683,18.683h4.068c0-8.071,6.543-14.615,14.615-14.615V6.461z" transform="rotate(275.098 25 25)"><animatetransform attributeType="xml" attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.6s" repeatCount="indefinite"></animatetransform></path></svg><style>#git_container{display: none;}</style></div><div id="git_container"></div></div>';
+      parent_div_git.insertAdjacentHTML("afterbegin",item_html)
+      console.log('已挂载gitcalendar')
+      }
+
+    if( document.getElementById('gitZone') && (location.pathname ==='/about/'|| '/about/' ==='all')){
+        gitcalendar_injector_config()
+        GitCalendarInit("https://gh-calendar.rschristian.dev/user/Ghib6",['#d9e0df', '#c6e0dc', '#a8dcd4', '#9adcd2', '#89ded1', '#77e0d0', '#5fdecb', '#47dcc6', '#39dcc3', '#1fdabe', '#00dab9'],'Ghib6')
+    }
+  </script><!-- hexo injector body_end end --><script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"debug":false,"model":{"jsonPath":"/live2dw/assets/wanko.model.json"},"display":{"position":"left","width":150,"height":300},"mobile":{"show":false},"log":false});</script></body></html>

@@ -1,0 +1,28 @@
+#pet-chat { position:fixed;left:180px;bottom:24px;width:360px;max-width:calc(100vw - 16px);height:470px;max-height:calc(100dvh - 16px);box-sizing:border-box;z-index:100001;display:flex;flex-direction:column;background:var(--card-bg,#fff);color:var(--font-color,#333);border:1px solid #aaa6;border-radius:8px;box-shadow:0 8px 32px #0003;overflow:hidden;font:14px/1.6 sans-serif; }
+#pet-chat[hidden] { display:none; }
+#pet-chat header { display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid #aaa5;cursor:grab;touch-action:none;user-select:none;flex-shrink:0; }
+#pet-chat.pet-dragging header { cursor:grabbing; }
+#pet-chat header strong { flex:1; }
+#pet-chat button { cursor:pointer;color:inherit;background:transparent;border:0;padding:6px 10px;font-size:18px; }
+#pet-chat-log { flex:1;min-height:0;overflow:auto;padding:16px; }
+#pet-chat-log .pet-message { margin:0 0 14px;white-space:pre-wrap;overflow-wrap:anywhere; }
+#pet-chat-log .pet-message[data-role=user] { border-left:3px solid #00b9ad;padding-left:10px; }
+#pet-chat-log .pet-markdown { white-space:normal; }
+#pet-chat-log .pet-markdown p { margin:0 0 8px; }
+#pet-chat-log a { color:#008e86;overflow-wrap:anywhere; }
+#pet-chat-log .pet-markdown h1, #pet-chat-log .pet-markdown h2, #pet-chat-log .pet-markdown h3 { font-size:16px;line-height:1.5;margin:12px 0 6px; }
+#pet-chat-log .pet-markdown ul, #pet-chat-log .pet-markdown ol { margin:6px 0;padding-left:22px; }
+#pet-chat-log .pet-markdown pre { overflow:auto;max-width:100%;background:#8882;padding:10px;border-radius:4px;white-space:pre; }
+#pet-chat-log .pet-markdown code { font-family:monospace;background:#8882;padding:1px 3px; }
+#pet-chat-log .pet-markdown pre code { background:none;padding:0; }
+#pet-chat-log .pet-markdown blockquote { border-left:3px solid #8886;margin:8px 0;padding-left:10px; }
+#pet-chat-log .pet-markdown table { display:block;overflow:auto;border-collapse:collapse;margin:8px 0; }
+#pet-chat-log .pet-markdown td, #pet-chat-log .pet-markdown th { border:1px solid #8885;padding:4px 8px; }
+#pet-chat-log .pet-sources { display:grid;gap:3px;margin-top:8px;padding-top:6px;border-top:1px solid #aaa4; }
+#pet-chat-log .pet-sources a { display:block;margin:0;line-height:1.45;font-size:13px; }
+#pet-chat form { display:flex;align-items:end;padding:10px 26px 10px 10px;border-top:1px solid #aaa5;gap:8px;flex-shrink:0; }
+#pet-chat button.pet-resize { position:absolute;right:0;bottom:0;width:24px;height:24px;padding:0;cursor:nwse-resize;touch-action:none; }
+#pet-chat .pet-resize::after { content:'';position:absolute;right:5px;bottom:5px;width:9px;height:9px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;opacity:.5; }
+#pet-chat.pet-resizing { user-select:none; }
+#pet-chat textarea { flex:1;min-width:0;resize:none;background:transparent;color:inherit;border:1px solid #aaa8;border-radius:4px;padding:8px;font:inherit; }
+@media(max-width:600px) { #pet-chat { left:16px;bottom:110px;height:440px;max-width:calc(100vw - 32px); } }
